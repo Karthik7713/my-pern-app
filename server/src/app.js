@@ -116,30 +116,26 @@ if (process.env.ENABLE_TEST_CONN === 'true') {
 app.use((req, res) => res.status(404).send('Not Found'));
 
 // --- Start server only when run directly (prevents tests from spawning a server)
+// --- Start server only when run directly (prevents tests from spawning a server)
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
-  const HOST = process.env.HOST || '127.0.0.1';
 
-  console.log(`Attempting to bind server to ${HOST}:${PORT} (pid=${process.pid})`);
+  console.log(`Attempting to bind server to 0.0.0.0:${PORT} (pid=${process.pid})`);
 
-  // bind explicitly to the configured HOST so we can diagnose loopback vs external issues
-  const server = app.listen(PORT, HOST, () => {
-    try {
-      const addr = server.address();
-      console.log(`Server successfully listening on ${addr.address}:${addr.port} (family=${addr.family})`);
-    } catch (e) {
-      console.log(`Server listening callback fired (PORT=${PORT}).`);
-    }
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    const addr = server.address();
+    console.log(`Server successfully listening on ${addr.address}:${addr.port}`);
   });
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`Port ${PORT} is already in use — change PORT or kill the process using it.`);
+      console.error(`Port ${PORT} is already in use.`);
       process.exit(1);
     } else {
       console.error('Server error during startup:', err);
     }
   });
 }
+
 
 module.exports = app;
