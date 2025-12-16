@@ -1,0 +1,91 @@
+/* Styles for Reports page */
+.reports-container { padding: 8px 20px 20px 20px; display:flex; justify-content:center; padding-top: calc(var(--navbar-height, 56px) + 8px); }
+.reports-inner { width:100%; max-width:1100px; background:#ffffff; overflow:visible; padding:16px; padding-top:0; border-radius:10px; box-shadow:0 4px 12px rgba(2,6,23,0.06); }
+.reports-header h1 { margin:0; font-size:22px; color:var(--text-color, #0f172a); }
+.reports-sub { margin:2px 0 8px 0; color:var(--muted, #6b7280); }
+.reports-controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:12px; background:#fff; border-radius:10px; margin:0 0 12px 0; box-shadow:0 4px 12px rgba(2,6,23,0.06); width:100%; box-sizing:border-box; position:relative; z-index:40; }
+.controls-left, .controls-middle, .controls-right { display:flex; align-items:center; gap:8px; min-width:0; }
+.controls-right { margin-left: auto; }
+.label { font-size:13px; color:var(--muted,#6b7280); }
+.controls-bar select { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; }
+.btn { padding:8px 12px; border-radius:8px; border:1px solid transparent; background:transparent; cursor:pointer; }
+.btn.secondary { background: #fff; border:1px solid #e5e7eb; color: #0f172a; }
+.btn.secondary.csv { background: #10b981; color: #ffffff; border-color: #10b981; }
+.btn.secondary.csv:hover { filter:brightness(0.95); }
+.btn.secondary.csv[disabled], .btn.secondary.csv[aria-disabled="true"] { background:#a7f3d0; color: #ffffff; border-color:#a7f3d0; opacity:0.7; }
+.btn.secondary.pdf { background: #ef4444; color: #ffffff; border-color: #ef4444; }
+.btn.secondary.pdf:hover { filter:brightness(0.95); }
+.btn.secondary.pdf[disabled], .btn.secondary.pdf[aria-disabled="true"] { background:#fca5a5; color: #ffffff; border-color:#fca5a5; opacity:0.7; }
+.btn[disabled], .btn[aria-disabled="true"] { opacity:0.5; cursor:not-allowed; }
+.btn.primary { background:#111827; color:white; border:1px solid rgba(0,0,0,0.08); }
+.btn.small { padding:6px 10px; }
+.reports-summary { margin-top:16px; z-index:30; position:relative; }
+.kpi-cards { display:flex; gap:12px; margin-bottom:12px; }
+.kpi { padding:10px 12px; border-radius:8px; background: #fff; box-shadow:0 0 0 1px rgba(15,23,42,0.03); min-width:140px; }
+.kpi-label { color:#6b7280; font-size:12px; }
+.kpi-value { font-size:18px; margin-top:6px; font-weight:600; }
+.reports-results { max-height:420px; overflow:auto; border-radius:8px; box-shadow:0 0 0 1px rgba(15,23,42,0.03); position:relative; z-index:10; background:#ffffff; }
+.reports-table-wrapper { border-radius:8px; }
+.reports-table { width:100%; border-collapse:collapse; min-width:600px; }
+.reports-table thead th { position:sticky; top:0; background:#fff; padding:10px; text-align:left; font-weight:600; border-bottom:1px solid #e5e7eb; }
+.reports-table thead th.num { text-align:right; }
+.reports-table tbody td { padding:10px; border-bottom:1px solid #f3f4f6; }
+.reports-table tbody tr:nth-child(even) { background:rgba(15,23,42,0.02); }
+.reports-table td.right, .reports-table td.num { text-align:right; }
+.table-footer { display:flex; justify-content:space-between; align-items:center; padding:10px 4px; color:#6b7280; }
+.pagination { display:flex; gap:8px; align-items:center; }
+
+/* Make Prev/Next buttons visually prominent in the table footer */
+.table-footer .pagination .btn {
+  padding:6px 10px;
+  border-radius:6px;
+  background: #111827;
+  color: #ffffff;
+  border: 1px solid rgba(0,0,0,0.12);
+}
+.table-footer .pagination .btn:hover:not([disabled]) { filter: brightness(1.05); }
+.table-footer .pagination .btn[disabled], .table-footer .pagination .btn[aria-disabled="true"] {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+  opacity: 1;
+}
+.table-footer .pagination span { color: #374151; font-weight:600; }
+.table-skeleton { display:flex; flex-direction:column; gap:8px; }
+.s-row { display:flex; gap:8px; padding:8px; }
+.s-cell { background:#eef2ff; height:14px; flex:1; border-radius:6px; }
+.s-cell.short { flex:0.6; }
+.reports-empty { text-align:center; padding:36px; background:#fff; border-radius:8px; box-shadow:0 0 0 1px rgba(15,23,42,0.03); }
+
+/* Ensure numeric values and table headers stay dark (black) inside the white reports card,
+   even when the surrounding app is in dark mode */
+.reports-inner .kpi-value,
+.reports-inner .kpi-label,
+.reports-inner .reports-table thead th,
+.reports-inner .reports-table tbody td,
+.reports-inner .table-footer,
+.reports-inner .table-footer .pagination span {
+  color: #0f1724; /* dark text */
+}
+.reports-inner .reports-table tbody td.right,
+.reports-inner .reports-table tbody td.num {
+  color: #0f1724; /* ensure numeric cells are dark */
+}
+
+/* Spinner inside button */
+.spinner { display:inline-block; width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,0.2); border-top-color: white; animation:spin 0.9s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Responsive: stack controls on small screens */
+
+@media (max-width:768px){
+  .reports-controls { flex-direction:column; align-items:stretch; }
+  .controls-left, .controls-middle, .controls-right { width:100%; justify-content:flex-start; }
+  .controls-right { margin-left:0; display:flex; gap:8px; justify-content:flex-start; }
+  .controls-right { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn { width: auto; }
+  .btn.full { width:100%; }
+  .kpi-cards { flex-direction:column; }
+  .reports-table { min-width:320px; }
+}

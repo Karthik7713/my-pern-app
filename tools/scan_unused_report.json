@@ -1,0 +1,162 @@
+[
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\eslint.config.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\App.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\components\\Navbar.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\components\\ProtectedRoute.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\hooks\\themeContext.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\hooks\\useAuth.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\hooks\\useTheme.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\main.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\pages\\Admin.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\pages\\Dashboard.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\pages\\ForgotPassword.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\pages\\Login.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\pages\\Reports.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\pages\\Settings.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\pages\\Signup.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\pages\\Transactions.jsx",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\services\\api.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\services\\auth.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\src\\utils\\format.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\client\\vite.config.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\server\\src\\app.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\server\\src\\db.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\server\\src\\middleware\\auth.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\server\\src\\routes\\admin.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\server\\src\\routes\\auth.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\server\\src\\routes\\reports.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\server\\src\\routes\\transactions.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\server\\src\\routes\\users.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\server\\src\\utils\\audit.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\server\\src\\utils\\export.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\server\\test\\reports.test.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  },
+  {
+    "file": "C:\\Users\\mkart\\New folder\\my-pern-app\\tools\\scan_unused.js",
+    "unusedImports": [],
+    "commentBlocks": []
+  }
+]
