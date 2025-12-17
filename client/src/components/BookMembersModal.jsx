@@ -152,24 +152,24 @@ export default function BookMembersModal({ bookId, bookName, open, onClose }) {
           )}
         </div>
 
-        <div style={{ position: 'relative', display:'flex', gap:8, alignItems:'center' }}>
+        <div style={{ position: 'relative', display:'flex', gap:8, alignItems:'center', flexWrap: 'wrap' }}>
           <input
             placeholder="Search users by name or email"
             value={newUserLabel}
             onChange={e=>{ setSearchQuery(e.target.value); setNewUserId(''); setNewUserLabel(e.target.value); setShowSuggestions(true); }}
             onFocus={() => { setShowSuggestions(true); setSearchQuery(''); }}
-            style={{ flex:1, padding:8, border:`1px solid ${colors.border}`, borderRadius:6, background:colors.input, color:colors.text }}
+            style={{ flex: '1 1 160px', minWidth:120, padding:8, border:`1px solid ${colors.border}`, borderRadius:6, background:colors.input, color:colors.text }}
           />
 
-          <select value={selectedRole} onChange={e=>setSelectedRole(e.target.value)} style={{ marginLeft:8, padding:8, border:`1px solid ${colors.border}`, borderRadius:6, background:colors.input, color:colors.text }}>
+          <select value={selectedRole} onChange={e=>setSelectedRole(e.target.value)} style={{ marginLeft:8, padding:8, border:`1px solid ${colors.border}`, borderRadius:6, background:colors.input, color:colors.text, minWidth:88, width:88 }}>
             <option value="MEMBER">Member</option>
             <option value="OWNER">Owner</option>
           </select>
 
-          <button onClick={handleAdd} disabled={adding} style={{ padding:'8px 12px', marginLeft:8, background:colors.buttonPrimary, color:'#fff', border:'none', borderRadius:6 }}>{adding ? 'Adding…' : 'Add'}</button>
+          <button onClick={handleAdd} disabled={adding} style={{ padding:'8px 12px', marginLeft:6, background:colors.buttonPrimary, color:'#fff', border:'none', borderRadius:6, minWidth:64 }}>{adding ? 'Adding…' : 'Add'}</button>
 
           {showSuggestions && suggestions && suggestions.length > 0 && (
-            <div style={{ position: 'absolute', left: 0, right: 120, top: '100%', background: colors.bgSecondary, border: `1px solid ${colors.border}`, borderRadius: 6, marginTop: 6, zIndex: 600, maxHeight: 220, overflow: 'auto' }}>
+            <div style={{ position: 'absolute', left: 0, right: 88, top: '100%', background: colors.bgSecondary, border: `1px solid ${colors.border}`, borderRadius: 6, marginTop: 6, zIndex: 600, maxHeight: 220, overflow: 'auto' }}>
               {suggestions.map(u => (
                 <div key={u.id} onMouseDown={(e)=>{ e.preventDefault(); setNewUserId(u.id); setNewUserLabel(u.name || u.email); setShowSuggestions(false); }} style={{ padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                   <div style={{ fontWeight: 600 }}>{u.name || u.email}</div>
