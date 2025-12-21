@@ -190,6 +190,7 @@ function ViewModal({ tx, onClose }) {
 
       const currentBook = (books||[]).find(b => String(b.id) === String(activeBookId));
       const canEdit = (currentBook && String(currentBook.my_role) === 'OWNER') || (user && user.role === 'ADMIN');
+      const isMemberOnly = user && String(user.role || '').toUpperCase() === 'MEMBER' && !canEdit;
       const API_ROOT = (() => {
         try { return (api.defaults.baseURL || '').replace(/\/api\/?$/i, ''); } catch { return ''; }
       })();
@@ -337,7 +338,15 @@ function ViewModal({ tx, onClose }) {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 160px', minWidth: 140 }}>
             <label style={{ display: 'block', fontSize: 12, marginBottom: 6 }}>Date</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} max={todayISO} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} />
+            <input
+              type="date"
+              value={date}
+              onChange={e => { if (isMemberOnly) return; setDate(e.target.value); }}
+              max={todayISO}
+              {...(isMemberOnly ? { min: todayISO } : {})}
+              title={isMemberOnly ? 'As a member you may only create transactions for today' : ''}
+              style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4, cursor: isMemberOnly ? 'not-allowed' : 'text' }}
+            />
           </div>
 
           <div style={{ flex: '1 1 160px', minWidth: 140 }}>
