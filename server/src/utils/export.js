@@ -74,11 +74,12 @@ function excelBuffer(rows, columns, summary, options = {}) {
       // date_display already provided
       // For the 'description' column reduce font-size and allow wrapping so more words fit on export
       if (c === 'description') {
-        // smaller font, left-align and allow word-wrap; escape HTML
+        // smaller font, left-align and allow wrapping; escape HTML
         const safe = String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        return `<td style="text-align:left;padding:6px;border:1px solid #ddd;font-size:11px;white-space:normal;word-break:break-word;">${safe}</td>`;
+        return `<td style="text-align:left;padding:6px;border:1px solid #ddd;font-size:11px;white-space:normal;word-break:break-word;vertical-align:top;">${safe}</td>`;
       }
-      return `<td style="text-align:center;padding:6px;border:1px solid #ddd;">${String(v)}</td>`;
+      // allow other cells to wrap and grow in height; align top so row height expands to fit description
+      return `<td style="text-align:center;padding:6px;border:1px solid #ddd;vertical-align:top;white-space:normal;word-break:break-word">${String(v)}</td>`;
     }).join('');
     return `<tr>${cells}</tr>`;
   }).join('\n');
@@ -122,7 +123,7 @@ function excelBuffer(rows, columns, summary, options = {}) {
   </head>
   <body>
     ${titleHtml}
-    <table style="border-collapse:collapse;width:100%;font-family:Arial,Helvetica,sans-serif;"> 
+    <table style="border-collapse:collapse;width:100%;font-family:Arial,Helvetica,sans-serif;table-layout:fixed;"> 
       <thead>
         <tr>${headCellsWithWidth}</tr>
       </thead>
