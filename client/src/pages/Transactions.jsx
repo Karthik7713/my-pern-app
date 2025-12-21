@@ -503,8 +503,8 @@ function ViewModal({ tx, onClose }) {
 
                         <td style={{ ...tdCompact, whiteSpace: 'normal' }}>{r.user_name || r.created_by || '-'}</td>
 
-                        <td style={{ ...tdCompact, textAlign: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        <td style={{ ...tdCompact, textAlign: 'center', overflow: 'visible' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, zIndex: 1000 }}>
                             {r.receipt_path && (
                               <button
                                 onClick={(e) => {
