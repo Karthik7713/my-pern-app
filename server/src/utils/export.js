@@ -72,6 +72,12 @@ function excelBuffer(rows, columns, summary, options = {}) {
         v = `<a href="${href}">Link</a>`;
       }
       // date_display already provided
+      // For the 'description' column reduce font-size and allow wrapping so more words fit on export
+      if (c === 'description') {
+        // smaller font, left-align and allow word-wrap; escape HTML
+        const safe = String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return `<td style="text-align:left;padding:6px;border:1px solid #ddd;font-size:11px;white-space:normal;word-break:break-word;">${safe}</td>`;
+      }
       return `<td style="text-align:center;padding:6px;border:1px solid #ddd;">${String(v)}</td>`;
     }).join('');
     return `<tr>${cells}</tr>`;
@@ -100,6 +106,14 @@ function excelBuffer(rows, columns, summary, options = {}) {
 
   const titleHtml = options.title ? `<h2 style="text-align:center;font-family:Arial,Helvetica,sans-serif;margin-bottom:10px">${String(options.title)}</h2>` : '';
 
+  // Build head cells again but allow description column to have increased width
+  const headCellsWithWidth = columns.map(c => {
+    if (c === 'description') {
+      return `<th style="text-align:left;padding:6px;border:1px solid #ddd;background:#f5f7fb;width:420px">${headerMap[c]||c}</th>`;
+    }
+    return `<th style="text-align:center;padding:6px;border:1px solid #ddd;background:#f5f7fb">${headerMap[c]||c}</th>`;
+  }).join('');
+
   const html = `<!DOCTYPE html>
   <html>
   <head>
@@ -110,7 +124,7 @@ function excelBuffer(rows, columns, summary, options = {}) {
     ${titleHtml}
     <table style="border-collapse:collapse;width:100%;font-family:Arial,Helvetica,sans-serif;"> 
       <thead>
-        <tr>${headCells}</tr>
+        <tr>${headCellsWithWidth}</tr>
       </thead>
       <tbody>
         ${bodyRows}
