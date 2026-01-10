@@ -68,7 +68,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
     // Return stored running_balance if available and user_name
-    const query = `SELECT t.*, to_char(t.date, 'DD/MM/YYYY') AS date_display, to_char(t.date, 'YYYY-MM-DD') AS date_iso, to_char(t.created_at, 'DD/MM/YYYY') AS created_at_date, to_char(t.created_at, 'HH12:MI:SS AM') AS created_at_time, u.name as user_name, t.running_balance FROM transactions t JOIN users u ON t.user_id = u.id ${where} ORDER BY t.date DESC, t.id DESC LIMIT $${++idx} OFFSET $${++idx}`;
+    const query = `SELECT t.*, to_char(t.date, 'DD/MM/YYYY') AS date_display, to_char(t.date, 'YYYY-MM-DD') AS date_iso, to_char(t.created_at AT TIME ZONE 'Asia/Kolkata', 'DD/MM/YYYY') AS created_at_date, to_char(t.created_at AT TIME ZONE 'Asia/Kolkata', 'HH12:MI:SS AM') AS created_at_time, u.name as user_name, t.running_balance FROM transactions t JOIN users u ON t.user_id = u.id ${where} ORDER BY t.date DESC, t.id DESC LIMIT $${++idx} OFFSET $${++idx}`;
     vals.push(Number(limit));
     vals.push(Number(offset));
 
@@ -107,7 +107,7 @@ router.post(
       const ins = await pool.query(q, vals);
       const createdId = ins.rows[0].id;
       // Re-select the inserted row with formatted date/time fields to avoid JS Date timezone conversion
-      const selQ = `SELECT t.*, to_char(t.date, 'DD/MM/YYYY') AS date_display, to_char(t.date, 'YYYY-MM-DD') AS date_iso, to_char(t.created_at, 'DD/MM/YYYY') AS created_at_date, to_char(t.created_at, 'HH12:MI:SS AM') AS created_at_time, u.name as user_name FROM transactions t JOIN users u ON t.user_id = u.id WHERE t.id = $1`;
+      const selQ = `SELECT t.*, to_char(t.date, 'DD/MM/YYYY') AS date_display, to_char(t.date, 'YYYY-MM-DD') AS date_iso, to_char(t.created_at AT TIME ZONE 'Asia/Kolkata', 'DD/MM/YYYY') AS created_at_date, to_char(t.created_at AT TIME ZONE 'Asia/Kolkata', 'HH12:MI:SS AM') AS created_at_time, u.name as user_name FROM transactions t JOIN users u ON t.user_id = u.id WHERE t.id = $1`;
       const selRes = await pool.query(selQ, [createdId]);
       const created = selRes.rows[0];
       if (created) { delete created.date; delete created.created_at; }
@@ -156,7 +156,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const vals = [date || tx.date, amount || tx.amount, description || tx.description, category || tx.category, type || tx.type, id];
     await pool.query(q, vals);
     // re-select formatted row
-    const selQ = `SELECT t.*, to_char(t.date, 'DD/MM/YYYY') AS date_display, to_char(t.date, 'YYYY-MM-DD') AS date_iso, to_char(t.created_at, 'DD/MM/YYYY') AS created_at_date, to_char(t.created_at, 'HH12:MI:SS AM') AS created_at_time, u.name as user_name FROM transactions t JOIN users u ON t.user_id = u.id WHERE t.id = $1`;
+    const selQ = `SELECT t.*, to_char(t.date, 'DD/MM/YYYY') AS date_display, to_char(t.date, 'YYYY-MM-DD') AS date_iso, to_char(t.created_at AT TIME ZONE 'Asia/Kolkata', 'DD/MM/YYYY') AS created_at_date, to_char(t.created_at AT TIME ZONE 'Asia/Kolkata', 'HH12:MI:SS AM') AS created_at_time, u.name as user_name FROM transactions t JOIN users u ON t.user_id = u.id WHERE t.id = $1`;
     const selRes = await pool.query(selQ, [id]);
     const updated = selRes.rows[0];
     if (updated) { delete updated.date; delete updated.created_at; }

@@ -40,7 +40,7 @@ router.get('/dashboard/summary', authenticateToken, async (req, res) => {
     // (the full running balance calculation can be costly on large tables). We prefer
     // to return stored `running_balance` when present; otherwise leave it NULL so the
     // client can display amounts without computing a historical running total.
-    const recentQ = `SELECT t.id, to_char(t.date, 'DD/MM/YYYY') AS date_display, to_char(t.date, 'YYYY-MM-DD') AS date_iso, t.amount, t.description, t.category, t.type, t.receipt_path, to_char(t.created_at, 'DD/MM/YYYY') AS created_at_date, to_char(t.created_at, 'HH12:MI:SS AM') AS created_at_time, u.name AS user_name,
+    const recentQ = `SELECT t.id, to_char(t.date, 'DD/MM/YYYY') AS date_display, to_char(t.date, 'YYYY-MM-DD') AS date_iso, t.amount, t.description, t.category, t.type, t.receipt_path, to_char(t.created_at AT TIME ZONE 'Asia/Kolkata', 'DD/MM/YYYY') AS created_at_date, to_char(t.created_at AT TIME ZONE 'Asia/Kolkata', 'HH12:MI:SS AM') AS created_at_time, u.name AS user_name,
       COALESCE(t.running_balance, NULL)::numeric(12,2) AS running_balance
       FROM transactions t
       JOIN users u ON t.user_id = u.id
