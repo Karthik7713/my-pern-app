@@ -101,10 +101,7 @@ router.post(
         if (!ok && req.user.role !== 'ADMIN') return res.status(403).json({ status: 'error', error: 'Access denied to book' });
       }
 
-      // Prevent obvious duplicates (same user+date+amount+description+type)
-      const dupQ = `SELECT id FROM transactions WHERE user_id=$1 AND date=$2 AND amount=$3 AND coalesce(description,'')=$4 AND type=$5 AND is_deleted=false LIMIT 1`;
-      const dupRes = await pool.query(dupQ, [userId, date, amount, description || '', type]);
-      if (dupRes.rows.length > 0) return res.status(409).json({ status: 'error', error: 'Duplicate transaction detected' });
+      // duplicate-detection removed: allow creating transactions without server-side duplicate blocking
       const q = `INSERT INTO transactions (user_id,date,amount,description,category,type,book_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`;
       const vals = [userId, date, amount, description, category, type, book_id];
       const ins = await pool.query(q, vals);
