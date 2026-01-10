@@ -29,8 +29,8 @@ export function AuthProvider({ children }) {
     else localStorage.removeItem('user');
   }, [user]);
 
-  const login = async ({ email, password }) => {
-    const data = await apiLogin({ email, password });
+  const login = async ({ email, password, secretCode } = {}) => {
+    const data = await apiLogin({ email, password, secretCode });
     if (data.token) {
       localStorage.setItem('token', data.token);
       setUser(data.user);

@@ -8,7 +8,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { login } = useAuth();
+  const { login, setUser } = useAuth();
   const navigate = useNavigate();
   const { colors } = useTheme();
 
@@ -73,6 +73,51 @@ export default function Login() {
               style={{ padding: '10px 16px', background: colors.buttonSecondary, color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14 }}
             >
               Back
+            </button>
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={async () => {
+                setError(null);
+                // ensure no stale token/user remain before attempting admin login
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setUser(null);
+                // require entering the admin secret code to proceed
+                const code = window.prompt('Enter admin secret code to authenticate as ADMIN');
+                if (!code) return setError('Admin secret code required');
+                setLoading(true);
+                try {
+                  // Prompt for admin email and password to require explicit credentials
+                  const adminEmail = window.prompt('Admin email', 'mkarthikreddy7713@gmail.com');
+                  if (!adminEmail) return setError('Admin email required');
+                  const adminPassword = window.prompt('Admin password');
+                  if (!adminPassword) return setError('Admin password required');
+                  const res = await login({ email: adminEmail, password: adminPassword, secretCode: code });
+                  // require server to explicitly return an ADMIN user
+                  if (res && res.token && res.user && String(res.user.role).toUpperCase() === 'ADMIN') {
+                    navigate('/cashbook', { replace: true });
+                  } else {
+                    // cleanup any partial auth state
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    setUser(null);
+                    setError(res?.error || 'Admin login failed: server did not return ADMIN');
+                  }
+                } catch (err) {
+                  // cleanup on unexpected error
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  setUser(null);
+                  setError(err.response?.data?.error || err.message || 'Admin login failed');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              style={{ padding: '8px 12px', background: colors.buttonSecondary, color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}
+            >
+              Log in as Admin
             </button>
           </div>
           <div>

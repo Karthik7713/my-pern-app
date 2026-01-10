@@ -8,6 +8,12 @@ const router = express.Router();
 // List books for current user (owned or member)
 router.get('/', authenticateToken, async (req, res) => {
   try {
+    // Admins see all books
+    if (req.user && req.user.role === 'ADMIN') {
+      const all = await pool.query('SELECT b.*, NULL AS my_role FROM books b ORDER BY b.created_at DESC');
+      return res.json({ status: 'ok', data: { books: all.rows } });
+    }
+
     const userId = String(req.user.id);
     // NOTE: Runtime fallback in place for legacy DBs. See `server/FALLBACK_README.md`.
     // Some databases may have `book_members.user_userid` (new schema) or legacy `book_members.user_id`.
@@ -78,7 +84,7 @@ router.post('/:bookId/members', authenticateToken, async (req, res) => {
     // check owner
     const { rows: bookRows } = await pool.query('SELECT owner_userid FROM books WHERE id=$1', [bookId]);
     if (bookRows.length === 0) return res.status(404).json({ status: 'error', error: 'Book not found' });
-    if (String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may add members' });
+    if (req.user.role !== 'ADMIN' && String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may add members' });
     try {
       await pool.query('INSERT INTO book_members (book_id, user_userid, role) VALUES ($1,$2,$3) ON CONFLICT (book_id, user_userid) DO UPDATE SET role = EXCLUDED.role', [bookId, String(user_userid), role]);
     } catch (err) {
@@ -99,7 +105,7 @@ router.delete('/:bookId/members/:user_userid', authenticateToken, async (req, re
     const { bookId, user_userid } = req.params;
     const { rows: bookRows } = await pool.query('SELECT owner_userid FROM books WHERE id=$1', [bookId]);
     if (bookRows.length === 0) return res.status(404).json({ status: 'error', error: 'Book not found' });
-    if (String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may remove members' });
+    if (req.user.role !== 'ADMIN' && String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may remove members' });
     try {
       await pool.query('DELETE FROM book_members WHERE book_id=$1 AND user_userid=$2', [bookId, String(user_userid)]);
     } catch (err) {
@@ -121,7 +127,7 @@ router.patch('/:bookId', authenticateToken, async (req, res) => {
     if (!name || !String(name).trim()) return res.status(400).json({ status: 'error', error: 'Missing name' });
     const { rows: bookRows } = await pool.query('SELECT owner_userid FROM books WHERE id=$1', [bookId]);
     if (bookRows.length === 0) return res.status(404).json({ status: 'error', error: 'Book not found' });
-    if (String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may update book' });
+    if (req.user.role !== 'ADMIN' && String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may update book' });
     const { rows } = await pool.query('UPDATE books SET name=$1 WHERE id=$2 RETURNING *', [String(name).trim(), bookId]);
     res.json({ status: 'ok', data: { book: rows[0] } });
   } catch (err) {
@@ -136,7 +142,7 @@ router.delete('/:bookId', authenticateToken, async (req, res) => {
     const { bookId } = req.params;
     const { rows: bookRows } = await pool.query('SELECT owner_userid FROM books WHERE id=$1', [bookId]);
     if (bookRows.length === 0) return res.status(404).json({ status: 'error', error: 'Book not found' });
-    if (String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may delete book' });
+    if (req.user.role !== 'ADMIN' && String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may delete book' });
 
     // Try to nullify or remove references in transactions.book_id if the column exists
     try {

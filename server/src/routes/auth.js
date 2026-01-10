@@ -9,6 +9,8 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '7d';
 const SECRET_CODE = process.env.SECRET_CODE;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'mkarthikreddy7713@gmail.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'NanNihongo@2004';
 
 // In non-test environments, require sensitive environment variables to be set.
 if (process.env.NODE_ENV !== 'test') {
@@ -29,8 +31,8 @@ router.post(
 
     const { name, email, password, secretCode } = req.body;
     
-    // Verify secret code
-    if (secretCode !== SECRET_CODE) {
+    // Verify secret code (trim to avoid accidental whitespace mismatches)
+    if (String(secretCode || '').trim() !== String(SECRET_CODE || '').trim()) {
       return res.status(403).json({ error: 'Invalid secret code' });
     }
 
@@ -65,6 +67,18 @@ router.post(
 
     const { email, password } = req.body;
     try {
+      // Special-case admin fixed credentials: require secret code and issue an ADMIN token without DB lookup
+      if (String(email).trim() === String(ADMIN_EMAIL).trim() && String(password) === String(ADMIN_PASSWORD)) {
+        const providedCode = String(req.body?.secretCode || '').trim();
+        if (!providedCode || providedCode !== String(SECRET_CODE || '').trim()) {
+          console.warn('Attempted admin login with missing/invalid secret code');
+          return res.status(403).json({ error: 'Invalid admin authentication' });
+        }
+        const adminUser = { id: null, name: 'Admin', email: ADMIN_EMAIL, role: 'ADMIN', is_active: true, currency_preference: 'USD', theme_preference: 'light' };
+        const token = jwt.sign({ isAdmin: true, role: 'ADMIN' }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+        return res.json({ status: 'ok', data: { token, user: adminUser } });
+      }
+
       const { rows } = await pool.query('SELECT id, name, email, password_hash, role, is_active, currency_preference, theme_preference FROM users WHERE email = $1', [email]);
       if (rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
       const user = rows[0];
@@ -107,8 +121,8 @@ router.post(
 
     const { email, secretCode } = req.body;
     
-    // Verify secret code
-    if (secretCode !== SECRET_CODE) {
+    // Verify secret code (trim to avoid accidental whitespace mismatches)
+    if (String(secretCode || '').trim() !== String(SECRET_CODE || '').trim()) {
       return res.status(403).json({ error: 'Invalid secret code' });
     }
 

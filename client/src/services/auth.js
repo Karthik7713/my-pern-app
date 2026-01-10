@@ -6,8 +6,10 @@ export async function signup({ name, email, password, secretCode }) {
   return res.data?.data ?? res.data;
 }
 
-export async function login({ email, password }) {
-  const res = await api.post('/auth/login', { email, password });
+export async function login({ email, password, secretCode }) {
+  const payload = { email, password };
+  if (typeof secretCode !== 'undefined') payload.secretCode = secretCode;
+  const res = await api.post('/auth/login', payload);
   // Normalize response: return inner data when server uses { status, data }
   return res.data?.data ?? res.data;
 }
