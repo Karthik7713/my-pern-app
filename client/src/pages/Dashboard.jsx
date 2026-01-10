@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { formatIndian, formatSignedIndian } from '../utils/format';
 import { formatDateTimeSafe } from '../utils/datetime';
@@ -199,27 +199,11 @@ export default function Dashboard() {
 }
 
 /* TransactionCard component: contains card content, overflow menu, edit modal, delete+undo */
-function TransactionCard({ tx, dtDate, dtTime, doneBy, displayAmount, amountColor, balanceVal, onUpdate, onRemove, showToast, canEdit }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
+function TransactionCard({ tx, dtDate, dtTime, doneBy, displayAmount, amountColor, balanceVal, onUpdate, onRemove, showToast }) {
+  // overflow menu removed — actions are available via other UI paths
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  useEffect(() => {
-    function onDoc(e) {
-      if (menuOpen && menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
-    }
-    function onEsc(e) { if (e.key === 'Escape') setMenuOpen(false); }
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('touchstart', onDoc);
-    document.addEventListener('keydown', onEsc);
-    return () => {
-      document.removeEventListener('mousedown', onDoc);
-      document.removeEventListener('touchstart', onDoc);
-      document.removeEventListener('keydown', onEsc);
-    };
-  }, [menuOpen]);
 
   const doDelete = async () => {
     if (loading) return;
@@ -252,19 +236,11 @@ function TransactionCard({ tx, dtDate, dtTime, doneBy, displayAmount, amountColo
     }
   };
 
-  const openEdit = () => setEditing(true);
+  
 
       return (
         <div className="tx-card">
-      <button
-        className="overflow-btn"
-        aria-haspopup="menu"
-        aria-expanded={menuOpen}
-        aria-label={`Open menu for transaction ${tx.id}`}
-        onClick={() => setMenuOpen(v => !v)}
-      >
-        ⋮
-      </button>
+      {/* overflow button removed */}
 
       <div className="meta">
         <div className="dt">
@@ -279,37 +255,7 @@ function TransactionCard({ tx, dtDate, dtTime, doneBy, displayAmount, amountColo
         <div className="balance">Bal: {balanceVal}</div>
       </div>
 
-      {menuOpen && (
-        <div className="overflow-menu" ref={menuRef} role="menu">
-          <button role="menuitem" aria-label={`View transaction ${tx.id}`} onClick={() => { setMenuOpen(false); /* view action could open a detail modal */ }}>View</button>
-          <button
-            role="menuitem"
-            aria-label={`Edit transaction ${tx.id}`}
-            onClick={() => {
-              setMenuOpen(false);
-              if (canEdit) openEdit();
-              else showToast && showToast({ message: 'Only owner may edit transactions' });
-            }}
-            disabled={!canEdit}
-            style={{ opacity: canEdit ? 1 : 0.5, cursor: canEdit ? 'pointer' : 'not-allowed' }}
-          >
-            Edit
-          </button>
-          <button
-            role="menuitem"
-            aria-label={`Delete transaction ${tx.id}`}
-            onClick={() => {
-              setMenuOpen(false);
-              if (canEdit) setDeleteOpen(true);
-              else showToast && showToast({ message: 'Only owner may delete transactions' });
-            }}
-            disabled={!canEdit}
-            style={{ opacity: canEdit ? 1 : 0.5, cursor: canEdit ? 'pointer' : 'not-allowed' }}
-          >
-            Delete
-          </button>
-        </div>
-      )}
+      {/* menu intentionally removed; View/Edit/Delete actions are not shown here */}
 
       {/* Confirm modal for delete (replaces native confirm) */}
       <ConfirmModal
