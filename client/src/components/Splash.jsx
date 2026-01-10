@@ -117,7 +117,11 @@ export default function Splash({ duration = 5000, onFinish = () => {} }) {
         )}
         <div style={titleStyle}>BHARATHI CONSTRUCTION</div>
         <div style={subTitleStyle}>CASH BOOK</div>
-        <div style={taglineStyle}>TRACK EXPENSES • MANAGE TRANSACTIONS • GENERATE REPORTS</div>
+        <div style={{ ...taglineStyle, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div>TRACK EXPENSES</div>
+          <div>MANAGE TRANSACTIONS</div>
+          <div>GENERATE REPORTS</div>
+        </div>
       </div>
 
       <div style={progressWrap}>
