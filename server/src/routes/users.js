@@ -34,26 +34,50 @@ router.put('/me', authenticateToken, body('email').optional().isEmail(), async (
   }
 });
 
-// Change password
-router.put('/me/password', authenticateToken, body('currentPassword').exists(), body('newPassword').isLength({ min: 6 }), async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+// Change password - allow using either current password or server SECRET_CODE (for trusted resets)
+router.put(
+  '/me/password',
+  authenticateToken,
+  body('currentPassword').optional(),
+  body('secretCode').optional(),
+  body('newPassword').isLength({ min: 6 }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-  const { currentPassword, newPassword } = req.body;
-  try {
-    const { rows } = await db.query('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
-    const user = rows[0];
-    const ok = await bcrypt.compare(currentPassword, user.password_hash || '');
-    if (!ok) return res.status(401).json({ status: 'error', error: 'Current password incorrect' });
+    const { currentPassword, secretCode, newPassword } = req.body;
 
-    const newHash = await bcrypt.hash(newPassword, 10);
-    await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [newHash, req.user.id]);
-    res.json({ status: 'ok', data: { ok: true } });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ status: 'error', error: 'DB error' });
+    if (!currentPassword && !secretCode) return res.status(400).json({ status: 'error', error: 'Provide currentPassword or secretCode' });
+
+    try {
+      // If secretCode provided, verify against env SECRET_CODE (trim both sides)
+      let authorized = false;
+      if (secretCode) {
+        const expected = (process.env.SECRET_CODE || '').trim();
+        if (expected && String(secretCode).trim() === expected) {
+          authorized = true;
+        } else {
+          return res.status(401).json({ status: 'error', error: 'Invalid secret code' });
+        }
+      }
+
+      if (!authorized) {
+        // verify current password
+        const { rows } = await db.query('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
+        const user = rows[0] || {};
+        const ok = await bcrypt.compare(currentPassword || '', user.password_hash || '');
+        if (!ok) return res.status(401).json({ status: 'error', error: 'Current password incorrect' });
+      }
+
+      const newHash = await bcrypt.hash(newPassword, 10);
+      await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [newHash, req.user.id]);
+      res.json({ status: 'ok', data: { ok: true } });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ status: 'error', error: 'DB error' });
+    }
   }
-});
+);
 
 // Admin: list all users (must be after /me routes)
 router.get('/', authenticateToken, requireRole('ADMIN'), async (req, res) => {

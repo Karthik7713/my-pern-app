@@ -14,6 +14,8 @@ export default function Settings() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [useSecret, setUseSecret] = useState(false);
+  const [secretCode, setSecretCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
@@ -48,13 +50,16 @@ export default function Settings() {
   const changePassword = async (e) => {
     e.preventDefault();
     if (newPassword !== confirm) return setError('Passwords do not match');
+    if (useSecret && !secretCode) return setError('Secret code required');
     try {
       setLoading(true);
       setError(null);
       setMessage(null);
-      await api.put('/users/me/password', { currentPassword, newPassword });
+      const payload = useSecret ? { secretCode, newPassword } : { currentPassword, newPassword };
+      await api.put('/users/me/password', payload);
       setMessage('Password changed');
       setCurrentPassword('');
+      setSecretCode('');
       setNewPassword('');
       setConfirm('');
     } catch (err) {
@@ -102,9 +107,25 @@ export default function Settings() {
       <h3 style={{ marginTop: 24, color: colors.text }}>Change Password</h3>
       <form onSubmit={changePassword}>
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', marginBottom: 4, color: colors.text, fontWeight: 500 }}>Current Password</label>
-          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={{ width: '100%', padding: 8, border: `1px solid ${colors.border}`, borderRadius: 4, background: colors.input, color: colors.text }} />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" checked={useSecret} onChange={(e) => setUseSecret(e.target.checked)} />
+            <span style={{ color: colors.text }}>Use secret code instead of current password</span>
+          </label>
         </div>
+
+        {!useSecret && (
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, color: colors.text, fontWeight: 500 }}>Current Password</label>
+            <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={{ width: '100%', padding: 8, border: `1px solid ${colors.border}`, borderRadius: 4, background: colors.input, color: colors.text }} />
+          </div>
+        )}
+
+        {useSecret && (
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, color: colors.text, fontWeight: 500 }}>Secret Code</label>
+            <input type="password" value={secretCode} onChange={(e) => setSecretCode(e.target.value)} style={{ width: '100%', padding: 8, border: `1px solid ${colors.border}`, borderRadius: 4, background: colors.input, color: colors.text }} />
+          </div>
+        )}
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', marginBottom: 4, color: colors.text, fontWeight: 500 }}>New Password</label>
           <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={{ width: '100%', padding: 8, border: `1px solid ${colors.border}`, borderRadius: 4, background: colors.input, color: colors.text }} />
