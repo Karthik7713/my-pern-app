@@ -8,8 +8,8 @@ const router = express.Router();
 // List books for current user (owned or member)
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    // Admins see all books
-    if (req.user && req.user.role === 'ADMIN') {
+    // Admins see all books. Accept either an explicit ADMIN role or middleware-set isAdmin flag.
+    if (req.user && (String(req.user.role || '').toUpperCase() === 'ADMIN' || req.user.isAdmin)) {
       const all = await pool.query('SELECT b.*, NULL AS my_role FROM books b ORDER BY b.created_at DESC');
       return res.json({ status: 'ok', data: { books: all.rows } });
     }
@@ -81,10 +81,12 @@ router.post('/:bookId/members', authenticateToken, async (req, res) => {
     const { bookId } = req.params;
     const { user_userid, role = 'MEMBER' } = req.body;
     if (!user_userid) return res.status(400).json({ status: 'error', error: 'Missing member user id' });
-    // check owner
+    // check owner (allow ADMIN to bypass)
     const { rows: bookRows } = await pool.query('SELECT owner_userid FROM books WHERE id=$1', [bookId]);
     if (bookRows.length === 0) return res.status(404).json({ status: 'error', error: 'Book not found' });
-    if (req.user.role !== 'ADMIN' && String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may add members' });
+    if ((String(req.user.role || '').toUpperCase() !== 'ADMIN' && !req.user.isAdmin) && String(bookRows[0].owner_userid) !== String(req.user.id)) {
+      return res.status(403).json({ status: 'error', error: 'Only owner may add members' });
+    }
     try {
       await pool.query('INSERT INTO book_members (book_id, user_userid, role) VALUES ($1,$2,$3) ON CONFLICT (book_id, user_userid) DO UPDATE SET role = EXCLUDED.role', [bookId, String(user_userid), role]);
     } catch (err) {
@@ -105,7 +107,9 @@ router.delete('/:bookId/members/:user_userid', authenticateToken, async (req, re
     const { bookId, user_userid } = req.params;
     const { rows: bookRows } = await pool.query('SELECT owner_userid FROM books WHERE id=$1', [bookId]);
     if (bookRows.length === 0) return res.status(404).json({ status: 'error', error: 'Book not found' });
-    if (req.user.role !== 'ADMIN' && String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may remove members' });
+    if ((String(req.user.role || '').toUpperCase() !== 'ADMIN' && !req.user.isAdmin) && String(bookRows[0].owner_userid) !== String(req.user.id)) {
+      return res.status(403).json({ status: 'error', error: 'Only owner may remove members' });
+    }
     try {
       await pool.query('DELETE FROM book_members WHERE book_id=$1 AND user_userid=$2', [bookId, String(user_userid)]);
     } catch (err) {
@@ -127,7 +131,9 @@ router.patch('/:bookId', authenticateToken, async (req, res) => {
     if (!name || !String(name).trim()) return res.status(400).json({ status: 'error', error: 'Missing name' });
     const { rows: bookRows } = await pool.query('SELECT owner_userid FROM books WHERE id=$1', [bookId]);
     if (bookRows.length === 0) return res.status(404).json({ status: 'error', error: 'Book not found' });
-    if (req.user.role !== 'ADMIN' && String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may update book' });
+    if ((String(req.user.role || '').toUpperCase() !== 'ADMIN' && !req.user.isAdmin) && String(bookRows[0].owner_userid) !== String(req.user.id)) {
+      return res.status(403).json({ status: 'error', error: 'Only owner may update book' });
+    }
     const { rows } = await pool.query('UPDATE books SET name=$1 WHERE id=$2 RETURNING *', [String(name).trim(), bookId]);
     res.json({ status: 'ok', data: { book: rows[0] } });
   } catch (err) {
@@ -142,7 +148,9 @@ router.delete('/:bookId', authenticateToken, async (req, res) => {
     const { bookId } = req.params;
     const { rows: bookRows } = await pool.query('SELECT owner_userid FROM books WHERE id=$1', [bookId]);
     if (bookRows.length === 0) return res.status(404).json({ status: 'error', error: 'Book not found' });
-    if (req.user.role !== 'ADMIN' && String(bookRows[0].owner_userid) !== String(req.user.id)) return res.status(403).json({ status: 'error', error: 'Only owner may delete book' });
+    if ((String(req.user.role || '').toUpperCase() !== 'ADMIN' && !req.user.isAdmin) && String(bookRows[0].owner_userid) !== String(req.user.id)) {
+      return res.status(403).json({ status: 'error', error: 'Only owner may delete book' });
+    }
 
     // Try to nullify or remove references in transactions.book_id if the column exists
     try {
