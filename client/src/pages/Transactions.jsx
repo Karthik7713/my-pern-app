@@ -190,7 +190,6 @@ function ViewModal({ tx, onClose }) {
 
       const currentBook = (books||[]).find(b => String(b.id) === String(activeBookId));
       const canEdit = (currentBook && String(currentBook.my_role) === 'OWNER') || (user && user.role === 'ADMIN');
-      const isMemberOnly = user && String(user.role || '').toUpperCase() === 'MEMBER' && !canEdit;
       const API_ROOT = (() => {
         try { return (api.defaults.baseURL || '').replace(/\/api\/?$/i, ''); } catch { return ''; }
       })();
@@ -217,7 +216,6 @@ function ViewModal({ tx, onClose }) {
   const [viewTx, setViewTx] = useState(null);
 
   const fileInputRef = useRef(null);
-
   // responsive: mobile card layout for small widths
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 720 : false);
   useEffect(() => {
@@ -338,15 +336,7 @@ function ViewModal({ tx, onClose }) {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 160px', minWidth: 140 }}>
             <label style={{ display: 'block', fontSize: 12, marginBottom: 6 }}>Date</label>
-            <input
-              type="date"
-              value={date}
-              onChange={e => { if (isMemberOnly) return; setDate(e.target.value); }}
-              max={todayISO}
-              {...(isMemberOnly ? { min: todayISO } : {})}
-              title={isMemberOnly ? 'As a member you may only create transactions for today' : ''}
-              style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4, cursor: isMemberOnly ? 'not-allowed' : 'text' }}
-            />
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} max={todayISO} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} />
           </div>
 
           <div style={{ flex: '1 1 160px', minWidth: 140 }}>
@@ -512,8 +502,8 @@ function ViewModal({ tx, onClose }) {
 
                         <td style={{ ...tdCompact, whiteSpace: 'normal' }}>{r.user_name || r.created_by || '-'}</td>
 
-                        <td style={{ ...tdCompact, textAlign: 'center', overflow: 'visible' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, zIndex: 1000 }}>
+                        <td style={{ ...tdCompact, textAlign: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                             {r.receipt_path && (
                               <button
                                 onClick={(e) => {
@@ -685,7 +675,7 @@ function ViewModal({ tx, onClose }) {
                 <button onClick={() => { if (previewUrl) { (async () => {
                     try { const res = await fetch(previewUrl); const blob = await res.blob(); const name = previewName || previewUrl.split('/').pop().split('?')[0]; const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u); } catch { setToast({ message: 'Download failed' }); }
                 })(); } }} style={{ padding: '6px 10px', background: '#111827', color: '#fff', border: 'none', borderRadius: 6 }}>Download</button>
-                <button onClick={() => setPreviewOpen(false)} style={{ padding: '6px 10px', background: '#f3f4f6', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 6 }}>Close</button>
+                <button onClick={() => setPreviewOpen(false)} style={{ padding: '6px 10px', background: '#1f6feb', color: '#fff', border: 'none', borderRadius: 6 }}>Close</button>
               </div>
             </div>
             <div style={{ marginTop: 12, height: 'calc(100% - 48px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
