@@ -110,7 +110,7 @@ function excelBuffer(rows, columns, summary, options = {}) {
   // Build head cells again but allow description column to have increased width
   const headCellsWithWidth = columns.map(c => {
     if (c === 'description') {
-      return `<th style="text-align:left;padding:6px;border:1px solid #ddd;background:#f5f7fb;width:420px">${headerMap[c]||c}</th>`;
+      return `<th style="text-align:left;padding:6px;border:1px solid #ddd;background:#f5f7fb;width:620px">${headerMap[c]||c}</th>`;
     }
     return `<th style="text-align:center;padding:6px;border:1px solid #ddd;background:#f5f7fb">${headerMap[c]||c}</th>`;
   }).join('');
@@ -180,13 +180,12 @@ function pdfBuffer(title, rows, columns) {
       id: 40,
       date_display: 70,
       amount: 80,
-      description: 80,
-      category: 60,
+      description: 200,
       type: 70,
       user_name: 100,
       running_balance: 70,
       'Done By': 100,
-      receipt_url: 120
+      receipt_url: 60
     };
 
     // Build initial widths array

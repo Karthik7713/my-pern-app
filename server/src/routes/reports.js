@@ -165,7 +165,7 @@ router.get('/reports/export/csv', authenticateToken, async (req, res) => {
     const base = `${req.protocol}://${req.get('host')}`;
     rows.forEach(r => { r.receipt_url = r.receipt_path ? `${base}/${String(r.receipt_path).replace(/^\/+/, '')}` : ''; });
 
-    const columns = ['id','date_display','amount','running_balance','description','category','type','user_name','receipt_url'];
+    const columns = ['id','date_display','amount','running_balance','description','type','user_name','receipt_url'];
     // Resolve a descriptive title for the export. If `book_id` is provided, fetch the book name.
     let exportTitle = 'Transactions Report';
     if (book_id) {
@@ -228,7 +228,7 @@ router.get('/reports/export/pdf', authenticateToken, async (req, res) => {
     const base = `${req.protocol}://${req.get('host')}`;
     rows.forEach(r => { r.receipt_url = r.receipt_path ? `${base}/${String(r.receipt_path).replace(/^\/+/, '')}` : ''; });
 
-    const columns = ['id','date_display','amount','running_balance','description','category','type','user_name','receipt_url'];
+    const columns = ['id','date_display','amount','running_balance','description','type','user_name','receipt_url'];
     let exportTitle = 'Transactions Report';
     if (book_id) {
       try {

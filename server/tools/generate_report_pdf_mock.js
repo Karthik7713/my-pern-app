@@ -13,13 +13,12 @@ const { pdfBuffer } = require('../src/utils/export');
         amount: (Math.random() * 10000).toFixed(2),
         running_balance: ((Math.random() - 0.5) * 100000).toFixed(2),
         description: `Sample transaction ${i}`,
-        category: 'misc',
         type: i % 3 === 0 ? 'CASH_IN' : 'CASH_OUT',
         user_name: 'testuser'
       });
     }
 
-    const columns = ['id','date_display','amount','running_balance','description','category','type','user_name'];
+    const columns = ['id','date_display','amount','running_balance','description','type','user_name'];
     const buf = await pdfBuffer('Mock Transactions Report', rows, columns);
     const out = 'server/tmp/report_sample_mock.pdf';
     fs.mkdirSync('server/tmp', { recursive: true });

@@ -12,7 +12,7 @@ async function run() {
       FROM transactions t JOIN users u ON t.user_id = u.id ORDER BY t.date DESC LIMIT 200`;
     const { rows } = await pool.query(q);
 
-    const columns = ['id','date_display','amount','running_balance','description','category','type','user_name'];
+    const columns = ['id','date_display','amount','running_balance','description','type','user_name'];
 
     // compute simple summary
     const inQ = `SELECT COALESCE(SUM(amount),0) AS total_cash_in FROM transactions WHERE type='CASH_IN'`;
