@@ -10,6 +10,44 @@ const fs = require('fs');
 
 const router = express.Router();
 
+// Helper: recompute running_balance for a partition (book_id or user_id)
+async function recomputePartition({ bookId = null, userId = null }) {
+  if (!bookId && !userId) return;
+  if (bookId) {
+    await pool.query(
+      `WITH ordered AS (
+         SELECT id,
+           (SUM(CASE WHEN type='CASH_IN' THEN amount ELSE -amount END)
+             OVER (PARTITION BY book_id ORDER BY date, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+           )::numeric(12,2) AS rb
+         FROM transactions
+         WHERE book_id = $1 AND is_deleted = false
+       )
+       UPDATE transactions t
+       SET running_balance = o.rb
+       FROM ordered o
+       WHERE t.id = o.id`,
+      [bookId]
+    );
+  } else {
+    await pool.query(
+      `WITH ordered AS (
+         SELECT id,
+           (SUM(CASE WHEN type='CASH_IN' THEN amount ELSE -amount END)
+             OVER (PARTITION BY user_id ORDER BY date, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+           )::numeric(12,2) AS rb
+         FROM transactions
+         WHERE user_id = $1 AND is_deleted = false
+       )
+       UPDATE transactions t
+       SET running_balance = o.rb
+       FROM ordered o
+       WHERE t.id = o.id`,
+      [userId]
+    );
+  }
+}
+
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -115,12 +153,43 @@ router.post(
       // If the DB has a `running_balance` column, compute and store the running balance for this transaction.
       try {
         await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS running_balance numeric(12,2)`);
-        const rbRes = await pool.query(
-          `SELECT COALESCE(SUM(CASE WHEN type='CASH_IN' THEN amount ELSE -amount END),0)::numeric(12,2) AS rb FROM transactions WHERE user_id=$1 AND is_deleted=false AND (date < $2 OR (date = $2 AND id <= $3))`,
-          [userId, date, createdId]
-        );
-        const rb = rbRes.rows[0].rb;
-        await pool.query('UPDATE transactions SET running_balance=$1 WHERE id=$2', [rb, createdId]);
+
+        // Recompute running balances for the entire partition affected by this insert.
+        // If the transaction belongs to a book, partition by book_id; otherwise partition by user_id.
+        if (book_id) {
+          await pool.query(
+            `WITH ordered AS (
+               SELECT id,
+                 (SUM(CASE WHEN type='CASH_IN' THEN amount ELSE -amount END)
+                   OVER (PARTITION BY book_id ORDER BY date, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+                 )::numeric(12,2) AS rb
+               FROM transactions
+               WHERE book_id = $1 AND is_deleted = false
+             )
+             UPDATE transactions t
+             SET running_balance = o.rb
+             FROM ordered o
+             WHERE t.id = o.id`,
+            [book_id]
+          );
+        } else {
+          await pool.query(
+            `WITH ordered AS (
+               SELECT id,
+                 (SUM(CASE WHEN type='CASH_IN' THEN amount ELSE -amount END)
+                   OVER (PARTITION BY user_id ORDER BY date, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+                 )::numeric(12,2) AS rb
+               FROM transactions
+               WHERE user_id = $1 AND is_deleted = false
+             )
+             UPDATE transactions t
+             SET running_balance = o.rb
+             FROM ordered o
+             WHERE t.id = o.id`,
+            [userId]
+          );
+        }
+
         // refresh created row to include running_balance
         const selRes2 = await pool.query(selQ, [createdId]);
         Object.assign(created, selRes2.rows[0]);
@@ -155,7 +224,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const q = `UPDATE transactions SET date=$1, amount=$2, description=$3, category=$4, type=$5 WHERE id=$6 RETURNING id`;
     const vals = [date || tx.date, amount || tx.amount, description || tx.description, category || tx.category, type || tx.type, id];
     await pool.query(q, vals);
-    // re-select formatted row
+    // Recompute running_balance for affected partition, then re-select formatted row
+    try {
+      await recomputePartition({ bookId: tx.book_id, userId: tx.user_id });
+    } catch (e) {
+      console.warn('Recompute after update failed:', e?.message || e);
+    }
     const selQ = `SELECT t.*, to_char(t.date, 'DD/MM/YYYY') AS date_display, to_char(t.date, 'YYYY-MM-DD') AS date_iso, to_char(t.created_at AT TIME ZONE 'Asia/Kolkata', 'DD/MM/YYYY') AS created_at_date, to_char(t.created_at AT TIME ZONE 'Asia/Kolkata', 'HH12:MI:SS AM') AS created_at_time, u.name as user_name FROM transactions t JOIN users u ON t.user_id = u.id WHERE t.id = $1`;
     const selRes = await pool.query(selQ, [id]);
     const updated = selRes.rows[0];
@@ -182,6 +256,12 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     await pool.query('UPDATE transactions SET is_deleted = true WHERE id = $1', [id]);
     logAudit({ userId, action: 'DELETE', entity_type: 'TRANSACTION', entity_id: id, details: tx });
+    // recompute partition balances after soft-delete
+    try {
+      await recomputePartition({ bookId: tx.book_id, userId: tx.user_id });
+    } catch (e) {
+      console.warn('Recompute after delete failed:', e?.message || e);
+    }
     res.json({ status: 'ok', data: { ok: true } });
   } catch (err) {
     console.error('Delete transaction error:', err);
@@ -201,6 +281,12 @@ router.post('/:id/restore', authenticateToken, async (req, res) => {
 
     await pool.query('UPDATE transactions SET is_deleted = false WHERE id = $1', [id]);
     logAudit({ userId, action: 'RESTORE', entity_type: 'TRANSACTION', entity_id: id, details: tx });
+    // recompute partition balances after restore
+    try {
+      await recomputePartition({ bookId: tx.book_id, userId: tx.user_id });
+    } catch (e) {
+      console.warn('Recompute after restore failed:', e?.message || e);
+    }
     res.json({ status: 'ok', data: { ok: true } });
   } catch (err) {
     console.error('Restore transaction error:', err);
