@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth } from './useAuth.jsx';
 import api from '../services/api';
 
 const BookContext = createContext(null);
@@ -19,7 +20,9 @@ export function BookProvider({ children }) {
     }
   };
 
-  useEffect(() => { fetchBooks(); }, []);
+  // Re-fetch books when auth state changes so post-login fetch includes the token
+  const { user } = useAuth();
+  useEffect(() => { fetchBooks(); }, [user]);
 
   const createBook = async (name) => {
     try {
