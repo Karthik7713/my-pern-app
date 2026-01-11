@@ -307,7 +307,8 @@ router.post('/:id/upload-receipt', authenticateToken, upload.single('receipt'), 
     const tx = ownership.rows[0];
     if (tx.user_id !== userId && req.user.role !== 'ADMIN') return res.status(403).json({ status: 'error', error: 'Forbidden' });
 
-    const receiptPath = path.join(UPLOAD_DIR, file.filename);
+    // Store path using forward-slashes so URLs work consistently across OSes
+    const receiptPath = `${UPLOAD_DIR}/${file.filename}`.replace(/\\/g, '/');
     const q = `UPDATE transactions SET receipt_path=$1 WHERE id=$2 RETURNING *`;
     const { rows } = await pool.query(q, [receiptPath, id]);
     const updated = rows[0];

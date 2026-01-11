@@ -87,9 +87,16 @@ router.get('/reports/summary', authenticateToken, async (req, res) => {
     const where = `WHERE ${clauses.join(' AND ')}`;
     const q = `SELECT ${group} as key, SUM(CASE WHEN type='CASH_IN' THEN amount ELSE 0 END) as cash_in, SUM(CASE WHEN type='CASH_OUT' THEN amount ELSE 0 END) as cash_out FROM transactions ${where} GROUP BY ${group} ORDER BY cash_in DESC NULLS LAST`;
     const { rows } = await pool.query(q, vals);
-    // attach absolute receipt URL for client convenience
+    // attach absolute receipt URL for client convenience (normalize paths)
     const base = `${req.protocol}://${req.get('host')}`;
-    rows.forEach(r => { r.receipt_url = r.receipt_path ? `${base}/${String(r.receipt_path).replace(/^\/+/, '')}` : ''; });
+    rows.forEach(r => {
+      if (r.receipt_path) {
+        const p = String(r.receipt_path).replace(/\\/g, '/').replace(/^\/+/, '');
+        r.receipt_url = `${base}/${p}`;
+      } else {
+        r.receipt_url = '';
+      }
+    });
     res.json({ rows });
   } catch (err) {
     console.error('Reports summary error:', err);
@@ -161,9 +168,16 @@ router.get('/reports/export/csv', authenticateToken, async (req, res) => {
       )::numeric(12,2) AS running_balance
       FROM transactions t JOIN users u ON t.user_id = u.id ${where} ORDER BY t.date DESC`;
     const { rows } = await pool.query(q, vals);
-    // Build absolute receipt URL for exported rows (if present)
+    // Build absolute receipt URL for exported rows (if present) and normalize paths
     const base = `${req.protocol}://${req.get('host')}`;
-    rows.forEach(r => { r.receipt_url = r.receipt_path ? `${base}/${String(r.receipt_path).replace(/^\/+/, '')}` : ''; });
+    rows.forEach(r => {
+      if (r.receipt_path) {
+        const p = String(r.receipt_path).replace(/\\/g, '/').replace(/^\/+/, '');
+        r.receipt_url = `${base}/${p}`;
+      } else {
+        r.receipt_url = '';
+      }
+    });
 
     const columns = ['id','date_display','amount','running_balance','description','type','user_name','receipt_url'];
     // Resolve a descriptive title for the export. If `book_id` is provided, fetch the book name.
@@ -224,9 +238,16 @@ router.get('/reports/export/pdf', authenticateToken, async (req, res) => {
       FROM transactions t JOIN users u ON t.user_id = u.id ${where} ORDER BY t.date DESC`;
     const { rows } = await pool.query(q, vals);
 
-    // attach absolute receipt URL for exported rows
+    // attach absolute receipt URL for exported rows and normalize paths
     const base = `${req.protocol}://${req.get('host')}`;
-    rows.forEach(r => { r.receipt_url = r.receipt_path ? `${base}/${String(r.receipt_path).replace(/^\/+/, '')}` : ''; });
+    rows.forEach(r => {
+      if (r.receipt_path) {
+        const p = String(r.receipt_path).replace(/\\/g, '/').replace(/^\/+/, '');
+        r.receipt_url = `${base}/${p}`;
+      } else {
+        r.receipt_url = '';
+      }
+    });
 
     const columns = ['id','date_display','amount','running_balance','description','type','user_name','receipt_url'];
     let exportTitle = 'Transactions Report';
