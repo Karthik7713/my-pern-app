@@ -167,6 +167,25 @@ function ViewModal({ tx, onClose }) {
     export default function Transactions() {
       const { activeBookId, books } = useBooks();
       const { user } = useAuth();
+      // Robust MEMBER detection: prefer `user` from context, fallback to multiple persisted shapes
+      function resolveRoleFromStorage() {
+        try {
+          if (user && user.role) return String(user.role).toUpperCase();
+          if (typeof window === 'undefined') return null;
+          const keys = ['user', 'auth', 'currentUser', 'me', 'persist:user'];
+          for (const k of keys) {
+            const raw = localStorage.getItem(k);
+            if (!raw) continue;
+            let parsed;
+            try { parsed = JSON.parse(raw); } catch { parsed = raw; }
+            const role = parsed?.role || parsed?.user?.role || parsed?.data?.user?.role || parsed?.data?.role || parsed?.user?.data?.role || null;
+            if (role) return String(role).toUpperCase();
+          }
+          return null;
+        } catch (e) { return null; }
+      }
+      // Treat legacy 'USER' role as a regular member (non-admin) for date-locking
+      const resolvedRole = resolveRoleFromStorage();
       const [toast, setToast] = useState(null);
       const [previewUrl, setPreviewUrl] = useState(null);
       const [previewOpen, setPreviewOpen] = useState(false);
@@ -189,7 +208,9 @@ function ViewModal({ tx, onClose }) {
       }, [toast]);
 
       const currentBook = (books||[]).find(b => String(b.id) === String(activeBookId));
-      const canEdit = (currentBook && String(currentBook.my_role) === 'OWNER') || (user && user.role === 'ADMIN');
+      const canEdit = (currentBook && String(currentBook.my_role) === 'OWNER') || (user && String(user.role || '').toUpperCase() === 'ADMIN');
+      // Lock date for non-owner/non-admin users who are 'MEMBER' or legacy 'USER'
+      const isDateLocked = (resolvedRole === 'MEMBER' || resolvedRole === 'USER') && !(currentBook && String(currentBook.my_role) === 'OWNER') && !(user && String(user.role || '').toUpperCase() === 'ADMIN');
       const API_ROOT = (() => {
         try { return (api.defaults.baseURL || '').replace(/\/api\/?$/i, ''); } catch { return ''; }
       })();
@@ -285,11 +306,16 @@ function ViewModal({ tx, onClose }) {
     e.preventDefault();
     setMessage(null);
     if (!date || !amount) return setMessage('Date and amount required');
-    const payload = { date, amount, type, description, category, attachment };
+    // For locked users, ensure date is today's date (prevent client-side bypass)
+    const finalDate = isDateLocked ? todayISO : date;
+    const payload = { date: finalDate, amount, type, description, category, attachment };
     setPendingPayload(payload);
     setMessage('Please confirm transaction details');
     setConfirmOpen(true);
   };
+
+  // Helper to open edit modal with preserved original date for members
+  const openEdit = (tx) => setEditTx({ ...tx, _original_date: tx.date_iso || tx.date || '' });
 
   const requestDelete = (id) => {
     setDeleteTxId(id);
@@ -312,7 +338,11 @@ function ViewModal({ tx, onClose }) {
     e.preventDefault();
     if (!editTx) return;
     try {
-      await api.put(`/transactions/${editTx.id}`, editTx);
+      const payload = { ...editTx };
+      // Prevent locked users from changing the date: force original
+      if (isDateLocked) payload.date = editTx._original_date || editTx.date_iso || payload.date;
+      delete payload._original_date;
+      await api.put(`/transactions/${editTx.id}`, payload);
       setEditTx(null);
       await loadTransactions();
     } catch {
@@ -336,7 +366,26 @@ function ViewModal({ tx, onClose }) {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 160px', minWidth: 140 }}>
             <label style={{ display: 'block', fontSize: 12, marginBottom: 6 }}>Date</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} max={todayISO} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} />
+            {isDateLocked ? (
+              // Render as plain text input for members to avoid browser datepicker
+              <input
+                type="text"
+                value={date}
+                readOnly
+                aria-readonly="true"
+                title="Date is fixed for members"
+                style={{ width: '100%', padding: 8, border: '1px solid #eee', borderRadius: 4, background: '#f9fafb', color: '#444', cursor: 'not-allowed' }}
+              />
+            ) : (
+              <input
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                max={todayISO}
+                title={''}
+                style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }}
+              />
+            )}
           </div>
 
           <div style={{ flex: '1 1 160px', minWidth: 140 }}>
@@ -447,7 +496,7 @@ function ViewModal({ tx, onClose }) {
                         )}
                         <TransactionMenu
                           onView={() => setViewTx(r)}
-                          onEdit={() => setEditTx(r)}
+                          onEdit={() => openEdit(r)}
                           onDelete={() => requestDelete(r.id)}
                           accentColor={accentBtn}
                           canEdit={canEdit}
@@ -542,7 +591,7 @@ function ViewModal({ tx, onClose }) {
                             )}
                             <TransactionMenu
                               onView={() => setViewTx(r)}
-                              onEdit={() => setEditTx(r)}
+                              onEdit={() => openEdit(r)}
                               onDelete={() => requestDelete(r.id)}
                               accentColor={accentBtn}
                               canEdit={canEdit}
@@ -620,13 +669,24 @@ function ViewModal({ tx, onClose }) {
             <h3>Edit Transaction</h3>
 
             <label style={{ display: 'block', fontSize: 12, marginBottom: 6 }}>Date</label>
-            <input
-              type="date"
-              value={editTx.date_iso || ((editTx.date && typeof editTx.date === 'string' && editTx.date.includes && editTx.date.includes('T')) ? editTx.date.split('T')[0] : (editTx.date || ''))}
-              onChange={e => setEditTx({ ...editTx, date: e.target.value, date_iso: e.target.value })}
-              max={todayISO}
-              style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }}
-            />
+            {isDateLocked ? (
+              <input
+                type="text"
+                value={editTx._original_date || editTx.date_iso || ((editTx.date && typeof editTx.date === 'string' && editTx.date.includes && editTx.date.includes('T')) ? editTx.date.split('T')[0] : (editTx.date || ''))}
+                readOnly
+                aria-readonly="true"
+                style={{ width: '100%', padding: 8, border: '1px solid #eee', borderRadius: 4, background: '#f9fafb', cursor: 'not-allowed' }}
+                title="Members cannot change the transaction date"
+              />
+            ) : (
+              <input
+                type="date"
+                value={editTx.date_iso || ((editTx.date && typeof editTx.date === 'string' && editTx.date.includes && editTx.date.includes('T')) ? editTx.date.split('T')[0] : (editTx.date || ''))}
+                onChange={e => setEditTx({ ...editTx, date: e.target.value, date_iso: e.target.value })}
+                max={todayISO}
+                style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }}
+              />
+            )}
 
             <label style={{ display: 'block', fontSize: 12, marginTop: 12 }}>Amount</label>
             <input value={editTx.amount} onChange={e => setEditTx({ ...editTx, amount: e.target.value })} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} />
