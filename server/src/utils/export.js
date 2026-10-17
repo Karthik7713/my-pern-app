@@ -2,34 +2,27 @@ const PDFDocument = require('pdfkit');
 const stream = require('stream');
 
 function rowsToCsv(rows, columns, options = {}) {
-  // Rename user_name column to 'Done By' in header
-  const header = columns.map(c => {
-    if (c === 'user_name') return 'Done By';
-    if (c === 'receipt_url') return 'Attachment';
-    return c;
-  }).join(',') + '\n';
+  const headerMap = {
+    id: 'ID', date_display: 'Date', amount: 'Amount', running_balance: 'Balance',
+    description: 'Description', category: 'Category', type: 'Type',
+    user_name: 'Done By', receipt_url: 'Attachment'
+  };
+  const escapeCell = value => `"${String(value).replace(/"/g, '""')}"`;
+  const header = columns.map(c => escapeCell(headerMap[c] || c)).join(',');
   const lines = rows.map(r => columns.map(c => {
     let v = r[c];
     if (v === null || v === undefined) return '';
-    // Format dates to YYYY-MM-DD HH:MM format
-    if (c === 'date' && v) {
-      const d = new Date(v);
-      v = d.toISOString().slice(0, 16).replace('T', ' ');
-    }
-    // For CSV exports, make the receipt_url a HYPERLINK formula so Excel shows a clickable 'Link'
+    // Keep values numeric so spreadsheet apps can sort and calculate them.
     if (c === 'receipt_url' && v) {
       const href = String(v).replace(/"/g, '""');
-      // Excel formula: =HYPERLINK("url","Link")
       v = `=HYPERLINK("${href}","Link")`;
     }
     if (typeof v === 'object') v = JSON.stringify(v);
-    // Escape quotes and commas
-    const s = String(v).replace(/"/g, '""');
-    return `"${s}"`;
+    return escapeCell(v);
   }).join(',')).join('\n');
-  // If a title was provided, include it as the first CSV line
-  const titleLine = options.title ? `${String(options.title)}\n` : '';
-  return titleLine + header + lines;
+  // A UTF-8 BOM helps Excel open international text correctly. Keep the first
+  // row as column headers so the file behaves like a regular editable sheet.
+  return `\uFEFF${header}\r\n${lines.replace(/\n/g, '\r\n')}`;
 }
 
 function csvBuffer(rows, columns) {

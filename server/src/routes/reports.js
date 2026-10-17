@@ -2,7 +2,7 @@ const express = require('express');
 const pool = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { userHasAccessToBook } = require('../middleware/bookAccess');
-const { csvBuffer, pdfBuffer, excelBuffer } = require('../utils/export');
+const { csvBuffer, pdfBuffer } = require('../utils/export');
 
 const router = express.Router();
 
@@ -190,17 +190,9 @@ router.get('/reports/export/csv', authenticateToken, async (req, res) => {
         // ignore and fallback to default title
       }
     }
-    // Ensure transactions table is aliased as `t` because `where` contains `t.` references
-    const summaryQIn = `SELECT COALESCE(SUM(t.amount),0)::numeric(12,2) AS total_cash_in FROM transactions t ${where} AND t.type='CASH_IN'`;
-    const summaryQOut = `SELECT COALESCE(SUM(t.amount),0)::numeric(12,2) AS total_cash_out FROM transactions t ${where} AND t.type='CASH_OUT'`;
-    const inRes = await pool.query(summaryQIn, vals);
-    const outRes = await pool.query(summaryQOut, vals);
-    const totalIn = Number(inRes.rows[0].total_cash_in || 0);
-    const totalOut = Number(outRes.rows[0].total_cash_out || 0);
-
-    const buf = excelBuffer(rows, columns, { totalIn, totalOut }, { title: exportTitle });
-    res.setHeader('Content-Type', 'application/vnd.ms-excel');
-    res.setHeader('Content-Disposition', `attachment; filename="${exportTitle.replace(/[^a-z0-9]/gi,'_').toLowerCase()}_${Date.now()}.xls"`);
+    const buf = csvBuffer(rows, columns);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${exportTitle.replace(/[^a-z0-9]/gi,'_').toLowerCase()}_${Date.now()}.csv"`);
     res.send(buf);
   } catch (err) {
     console.error('Export CSV error:', err);

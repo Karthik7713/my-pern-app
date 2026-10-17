@@ -152,7 +152,7 @@ export default function Reports(){
         <header className="reports-header">
           <div>
             <h1>Reports</h1>
-            <p className="reports-sub">Generate CSV/PDF exports for selected period</p>
+            <p className="reports-sub">Generate reports and download editable spreadsheet or PDF files</p>
           </div>
         </header>
 
@@ -175,7 +175,7 @@ export default function Reports(){
           </div>
 
           <div className="controls-right">
-            <button className="btn secondary csv" onClick={exportCsv} aria-label="Export CSV" disabled={!rows || rows.length===0 || loading} aria-disabled={!rows || rows.length===0 || loading} title={!rows || rows.length===0 ? 'Generate results first' : 'Export CSV'}>Export CSV</button>
+            <button className="btn secondary csv" onClick={exportCsv} aria-label="Export editable spreadsheet" disabled={!rows || rows.length===0 || loading} aria-disabled={!rows || rows.length===0 || loading} title={!rows || rows.length===0 ? 'Generate results first' : 'Downloads an editable CSV spreadsheet for Excel'}>Export Spreadsheet</button>
             <button className="btn secondary pdf" onClick={exportPdf} aria-label="Export PDF" disabled={!rows || rows.length===0 || loading} aria-disabled={!rows || rows.length===0 || loading} title={!rows || rows.length===0 ? 'Generate results first' : 'Export PDF'}>Export PDF</button>
           </div>
         </section>
