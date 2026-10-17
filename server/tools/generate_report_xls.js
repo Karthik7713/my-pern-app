@@ -22,8 +22,8 @@ async function run() {
     const totalIn = Number(inRes.rows[0].total_cash_in || 0);
     const totalOut = Number(outRes.rows[0].total_cash_out || 0);
 
-    const buf = excelBuffer(rows, columns, { totalIn, totalOut });
-    const outPath = path.join(__dirname, '..', 'tmp', 'report_sample.xls');
+    const buf = await excelBuffer(rows, columns, { totalIn, totalOut });
+    const outPath = path.join(__dirname, '..', 'tmp', 'report_sample.xlsx');
     fs.writeFileSync(outPath, buf);
     console.log('Wrote', outPath);
     process.exit(0);

@@ -60,12 +60,11 @@ export default function Reports(){
     }
   };
 
-  const exportCsv = async () => {
-    // stubbed: only enabled when rows exist
+  const exportExcel = async () => {
     if (!rows || rows.length === 0) return;
     const bookParam = activeBookId ? `?book_id=${encodeURIComponent(activeBookId)}` : '';
     try {
-      const res = await api.get(`/reports/export/csv${bookParam}`, { responseType: 'blob' });
+      const res = await api.get(`/reports/export/excel${bookParam}`, { responseType: 'blob' });
       const headers = res.headers || {};
       const contentType = (headers['content-type'] || headers['Content-Type'] || '') + '';
 
@@ -89,7 +88,7 @@ export default function Reports(){
         try { filename = decodeURIComponent(fnMatch[1]); } catch { filename = fnMatch[1]; }
       }
 
-      const ext = contentType.includes('excel') || contentType.includes('html') ? 'xls' : 'csv';
+      const ext = contentType.includes('spreadsheetml') ? 'xlsx' : 'csv';
       if (!filename) filename = `report_${Date.now()}.${ext}`;
 
       const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: contentType });
@@ -103,7 +102,7 @@ export default function Reports(){
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Export CSV failed', err);
+      console.error('Export Excel failed', err);
       setError('Export failed');
     }
   };
@@ -152,7 +151,7 @@ export default function Reports(){
         <header className="reports-header">
           <div>
             <h1>Reports</h1>
-            <p className="reports-sub">Generate CSV/PDF exports for selected period</p>
+            <p className="reports-sub">Generate Excel/PDF exports for selected period</p>
           </div>
         </header>
 
@@ -175,7 +174,7 @@ export default function Reports(){
           </div>
 
           <div className="controls-right">
-            <button className="btn secondary csv" onClick={exportCsv} aria-label="Export CSV" disabled={!rows || rows.length===0 || loading} aria-disabled={!rows || rows.length===0 || loading} title={!rows || rows.length===0 ? 'Generate results first' : 'Export CSV'}>Export CSV</button>
+            <button className="btn secondary csv" onClick={exportExcel} aria-label="Export Excel" disabled={!rows || rows.length===0 || loading} aria-disabled={!rows || rows.length===0 || loading} title={!rows || rows.length===0 ? 'Generate results first' : 'Download an editable Excel workbook'}>Export Excel</button>
             <button className="btn secondary pdf" onClick={exportPdf} aria-label="Export PDF" disabled={!rows || rows.length===0 || loading} aria-disabled={!rows || rows.length===0 || loading} title={!rows || rows.length===0 ? 'Generate results first' : 'Export PDF'}>Export PDF</button>
           </div>
         </section>

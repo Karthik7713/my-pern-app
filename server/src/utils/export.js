@@ -1,5 +1,6 @@
 const PDFDocument = require('pdfkit');
 const stream = require('stream');
+const ExcelJS = require('exceljs');
 
 function rowsToCsv(rows, columns, options = {}) {
   // Rename user_name column to 'Done By' in header
@@ -40,9 +41,7 @@ function csvBuffer(rows, columns) {
   return Buffer.from(csv, 'utf8');
 }
 
-function excelBuffer(rows, columns, summary, options = {}) {
-  // Build a simple HTML table that Excel will open. Center-align all columns and
-  // include a footer summary block so values like Cash In/Out/Balance are visible.
+async function excelBuffer(rows, columns, summary, options = {}) {
   const headerMap = {
     id: 'ID',
     date_display: 'Date',
@@ -55,89 +54,69 @@ function excelBuffer(rows, columns, summary, options = {}) {
     running_balance: 'Balance'
   };
 
-  const headCells = columns.map(c => `<th style="text-align:center;padding:6px;border:1px solid #ddd;background:#f5f7fb">${headerMap[c]||c}</th>`).join('');
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'My Pern App';
+  const worksheet = workbook.addWorksheet('Transactions', {
+    views: [{ state: 'frozen', ySplit: options.title ? 2 : 1 }]
+  });
+  worksheet.columns = columns.map(key => ({
+    header: headerMap[key] || key,
+    key,
+    width: key === 'description' ? 64 : key === 'receipt_url' ? 20 : 18,
+    style: { alignment: { vertical: 'top', wrapText: key === 'description' } }
+  }));
 
-  const bodyRows = rows.map(r => {
-      const cells = columns.map(c => {
-      let v = r[c];
-      if (v === null || v === undefined) v = '';
-      // Format numbers like Indian style for amount/balance
-      if ((c === 'amount' || c === 'running_balance') && v !== '') {
-        const n = Number(v);
-        if (Number.isFinite(n)) v = n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      }
-      // For receipt_url show a clickable link in the HTML/Excel output
-      if (c === 'receipt_url' && v) {
-        const href = String(v).replace(/"/g, '%22');
-        v = `<a href="${href}">Link</a>`;
-      }
-      // date_display already provided
-      // For the 'description' column reduce font-size and allow wrapping so more words fit on export
-      if (c === 'description') {
-        // smaller font, left-align and allow wrapping; escape HTML
-        const safe = String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        return `<td style="text-align:left;padding:6px;border:1px solid #ddd;font-size:11px;white-space:normal;word-break:break-word;vertical-align:top;">${safe}</td>`;
-      }
-      // allow other cells to wrap and grow in height; align top so row height expands to fit description
-      return `<td style="text-align:center;padding:6px;border:1px solid #ddd;vertical-align:top;white-space:normal;word-break:break-word">${String(v)}</td>`;
-    }).join('');
-    return `<tr>${cells}</tr>`;
-  }).join('\n');
-
-  // Footer: include summary values if provided
-  let footerHtml = '';
-  if (summary && (summary.totalIn !== undefined || summary.totalOut !== undefined)) {
-    const totIn = summary.totalIn || 0;
-    const totOut = summary.totalOut || 0;
-    const bal = (totIn - totOut) || 0;
-    footerHtml = `
-      <tr><td colspan="${columns.length}" style="height:10px;border:none"></td></tr>
-      <tr>
-        <td colspan="${columns.length}" style="border:1px solid #ddd;padding:6px;">
-          <table style="width:100%;border-collapse:collapse;">
-            <tr>
-              <td style="text-align:center;padding:6px;border:1px solid #ddd;background:#eef2ff;">Cash In<br/><strong>${Number(totIn).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></td>
-              <td style="text-align:center;padding:6px;border:1px solid #ddd;background:#fee2e2;">Cash Out<br/><strong>${Number(totOut).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></td>
-              <td style="text-align:center;padding:6px;border:1px solid #ddd;background:#f0fdf4;">Balance<br/><strong>${Number(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></td>
-            </tr>
-          </table>
-        </td>
-      </tr>`;
+  if (options.title) {
+    worksheet.insertRow(1, [options.title]);
+    worksheet.mergeCells(1, 1, 1, columns.length);
+    worksheet.getCell(1, 1).font = { bold: true, size: 16 };
+    worksheet.getCell(1, 1).alignment = { horizontal: 'center' };
   }
 
-  const titleHtml = options.title ? `<h2 style="text-align:center;font-family:Arial,Helvetica,sans-serif;margin-bottom:10px">${String(options.title)}</h2>` : '';
+  const headerRow = worksheet.getRow(options.title ? 2 : 1);
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
+  headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+  headerRow.height = 22;
+  worksheet.autoFilter = {
+    from: { row: headerRow.number, column: 1 },
+    to: { row: headerRow.number, column: columns.length }
+  };
 
-  // Build head cells again but allow description column to have increased width
-  const headCellsWithWidth = columns.map(c => {
-    if (c === 'description') {
-      return `<th style="text-align:left;padding:6px;border:1px solid #ddd;background:#f5f7fb;width:620px">${headerMap[c]||c}</th>`;
+  rows.forEach(row => {
+    const values = {};
+    columns.forEach(key => {
+      const value = row[key];
+      if ((key === 'amount' || key === 'running_balance') && value != null && value !== '') {
+        values[key] = Number(value);
+      } else if (key === 'receipt_url' && value) {
+        values[key] = { text: 'Link', hyperlink: String(value) };
+      } else {
+        values[key] = value == null ? '' : value;
+      }
+    });
+    const worksheetRow = worksheet.addRow(values);
+    ['amount', 'running_balance'].forEach(key => {
+      if (columns.includes(key)) worksheetRow.getCell(columns.indexOf(key) + 1).numFmt = '#,##0.00';
+    });
+  });
+
+  if (summary && (summary.totalIn !== undefined || summary.totalOut !== undefined)) {
+    worksheet.addRow([]);
+    worksheet.addRow(['Summary']);
+    worksheet.addRow(['Cash In', Number(summary.totalIn || 0)]);
+    worksheet.addRow(['Cash Out', Number(summary.totalOut || 0)]);
+    worksheet.addRow(['Net Balance', Number(summary.totalIn || 0) - Number(summary.totalOut || 0)]);
+    const summaryStart = worksheet.rowCount - 3;
+    for (let rowNo = summaryStart; rowNo <= worksheet.rowCount; rowNo++) {
+      worksheet.getRow(rowNo).getCell(1).font = { bold: true };
     }
-    return `<th style="text-align:center;padding:6px;border:1px solid #ddd;background:#f5f7fb">${headerMap[c]||c}</th>`;
-  }).join('');
+    for (let rowNo = summaryStart + 1; rowNo <= worksheet.rowCount; rowNo++) {
+      worksheet.getRow(rowNo).getCell(2).numFmt = '#,##0.00';
+    }
+  }
 
-  const html = `<!DOCTYPE html>
-  <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>${options.title ? String(options.title) : 'Report'}</title>
-  </head>
-  <body>
-    ${titleHtml}
-    <table style="border-collapse:collapse;width:100%;font-family:Arial,Helvetica,sans-serif;table-layout:fixed;"> 
-      <thead>
-        <tr>${headCellsWithWidth}</tr>
-      </thead>
-      <tbody>
-        ${bodyRows}
-      </tbody>
-      <tfoot>
-        ${footerHtml}
-      </tfoot>
-    </table>
-  </body>
-  </html>`;
-
-  return Buffer.from(html, 'utf8');
+  return workbook.xlsx.writeBuffer();
 }
 
 function pdfBuffer(title, rows, columns) {

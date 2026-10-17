@@ -2,7 +2,7 @@ const express = require('express');
 const pool = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { userHasAccessToBook } = require('../middleware/bookAccess');
-const { csvBuffer, pdfBuffer, excelBuffer } = require('../utils/export');
+const { pdfBuffer, excelBuffer } = require('../utils/export');
 
 const router = express.Router();
 
@@ -141,8 +141,9 @@ router.get('/reports/details', authenticateToken, async (req, res) => {
   }
 });
 
-// Export CSV
-router.get('/reports/export/csv', authenticateToken, async (req, res) => {
+// Export a native Excel workbook. Keep the old CSV path as an alias for clients
+// that still call it; both routes now return a genuine .xlsx file.
+router.get(['/reports/export/excel', '/reports/export/csv'], authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { startDate, endDate, book_id } = req.query;
@@ -198,15 +199,15 @@ router.get('/reports/export/csv', authenticateToken, async (req, res) => {
     const totalIn = Number(inRes.rows[0].total_cash_in || 0);
     const totalOut = Number(outRes.rows[0].total_cash_out || 0);
 
-    const buf = excelBuffer(rows, columns, { totalIn, totalOut }, { title: exportTitle });
-    res.setHeader('Content-Type', 'application/vnd.ms-excel');
-    res.setHeader('Content-Disposition', `attachment; filename="${exportTitle.replace(/[^a-z0-9]/gi,'_').toLowerCase()}_${Date.now()}.xls"`);
+    const buf = await excelBuffer(rows, columns, { totalIn, totalOut }, { title: exportTitle });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${exportTitle.replace(/[^a-z0-9]/gi,'_').toLowerCase()}_${Date.now()}.xlsx"`);
     res.send(buf);
   } catch (err) {
-    console.error('Export CSV error:', err);
+    console.error('Export Excel error:', err);
     // Provide a bit more context when possible
     try { console.error('Export CSV query vars:', { startDate: req.query.startDate, endDate: req.query.endDate, book_id: req.query.book_id }); } catch (e) {}
-    res.status(500).json({ error: 'Failed to export CSV' });
+    res.status(500).json({ error: 'Failed to export Excel workbook' });
   }
 });
 
