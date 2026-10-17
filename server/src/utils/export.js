@@ -2,6 +2,29 @@ const PDFDocument = require('pdfkit');
 const stream = require('stream');
 const ExcelJS = require('exceljs');
 
+function formatReportDate(value) {
+  if (!value) return '';
+  const parts = String(value).split('-');
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : String(value);
+}
+
+function formatReportRange(dateRange = {}) {
+  const start = formatReportDate(dateRange.startDate);
+  const end = formatReportDate(dateRange.endDate);
+  if (start && end) return `${start} to ${end}`;
+  if (start) return `From ${start} onward`;
+  if (end) return `Through ${end}`;
+  return 'All dates';
+}
+
+function formatGeneratedAt(value = new Date()) {
+  return `${new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata'
+  }).format(value)} IST`;
+}
+
 function rowsToCsv(rows, columns, options = {}) {
   // Rename user_name column to 'Done By' in header
   const header = columns.map(c => {
@@ -139,10 +162,19 @@ async function excelBuffer(rows, columns, summary, options = {}) {
     });
   }
 
+  worksheet.addRow([]);
+  const rangeRow = worksheet.addRow(['Selected Date Range', formatReportRange(options.dateRange)]);
+  const generatedRow = worksheet.addRow(['Report Overview Generated', formatGeneratedAt(options.generatedAt)]);
+  [rangeRow, generatedRow].forEach(row => {
+    row.getCell(1).font = { bold: true, color: { argb: 'FF1E3A8A' } };
+    row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
+    row.getCell(2).font = { bold: true };
+  });
+
   return workbook.xlsx.writeBuffer();
 }
 
-function pdfBuffer(title, rows, columns, overallTotals = {}) {
+function pdfBuffer(title, rows, columns, overallTotals = {}, metadata = {}) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 20, size: 'A4', layout: 'landscape' });
     const passthrough = new stream.PassThrough();
@@ -506,7 +538,7 @@ function pdfBuffer(title, rows, columns, overallTotals = {}) {
     };
 
     doc.moveDown(0.6);
-    const summaryHeight = 130;
+    const summaryHeight = 150;
     if (doc.y + summaryHeight > bottomLimit) doc.addPage({ margin: 20, size: 'A4', layout: 'landscape' });
     let summaryY = doc.y;
     summaryY = drawSummaryGroup('Selected Range Totals', totalIn, totalOut, summaryY);
@@ -521,8 +553,8 @@ function pdfBuffer(title, rows, columns, overallTotals = {}) {
 
     // Generated date
     doc.font('Helvetica').fontSize(7).fillColor('#000');
-    const genDate = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    doc.text('Generated on: ' + genDate, startX, doc.y, { width: usableWidth, align: 'left' });
+    const footerText = `Selected range: ${formatReportRange(metadata.dateRange)}  |  Overview generated: ${formatGeneratedAt(metadata.generatedAt)}`;
+    doc.text(footerText, startX, doc.y, { width: usableWidth, align: 'left' });
 
     doc.end();
   });

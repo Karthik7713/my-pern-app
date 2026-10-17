@@ -37,6 +37,7 @@ export default function Reports(){
   const [appliedDateRange, setAppliedDateRange] = useState({ startDate: '', endDate: '' });
   const [appliedDateFilterEnabled, setAppliedDateFilterEnabled] = useState(true);
   const [appliedBookId, setAppliedBookId] = useState(activeBookId);
+  const [reportGeneratedAt, setReportGeneratedAt] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState({ key: 'key', dir: 'asc' });
@@ -88,6 +89,7 @@ export default function Reports(){
       setAppliedDateRange(dateRange);
       setAppliedDateFilterEnabled(dateFilterEnabled);
       setAppliedBookId(activeBookId);
+      setReportGeneratedAt(new Date());
     } catch (err) {
       console.error('Failed to fetch report details:', err);
       setError('Failed to fetch report details. Try again or check server connection.');
@@ -175,6 +177,12 @@ export default function Reports(){
 
   const pageCount = sorted ? Math.max(1, Math.ceil(sorted.length / pageSize)) : 1;
   const current = sorted ? sorted.slice((page-1)*pageSize, page*pageSize) : [];
+  const selectedRangeLabel = !appliedDateRange.startDate && !appliedDateRange.endDate
+    ? 'All dates'
+    : `${appliedDateRange.startDate ? appliedDateRange.startDate.split('-').reverse().join('/') : 'Beginning'} – ${appliedDateRange.endDate ? appliedDateRange.endDate.split('-').reverse().join('/') : 'Present'}`;
+  const generatedAtLabel = reportGeneratedAt
+    ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }).format(reportGeneratedAt) + ' IST'
+    : '';
 
   const toggleSort = (key) => {
     setSortBy(s => ({ key, dir: s.key === key ? (s.dir === 'asc' ? 'desc' : 'asc') : 'asc' }));
@@ -245,39 +253,41 @@ export default function Reports(){
 
           {rows && (
             <>
-              <h2 className="reports-kpi-heading">Selected range</h2>
-              <div className="kpi-cards">
-                <div className="kpi">
+              <section className="reports-total-group reports-total-group--range" aria-label="Selected range totals">
+                <h2 className="reports-kpi-heading">Selected Range <span className="reports-range-badge">{selectedRangeLabel}</span></h2>
+                <div className="kpi-cards kpi-cards--range">
+                <div className="kpi kpi--range">
                   <div className="kpi-label">Cash In</div>
                   <div className="kpi-value">{numberFormatIN(rows.reduce((s,r)=>s+ sanitizeNumber(r.cash_in),0))}</div>
                 </div>
-                <div className="kpi">
+                <div className="kpi kpi--range">
                   <div className="kpi-label">Cash Out</div>
                   <div className="kpi-value">{numberFormatIN(rows.reduce((s,r)=>s+ sanitizeNumber(r.cash_out),0))}</div>
                 </div>
-                <div className="kpi">
+                <div className="kpi kpi--range">
                   <div className="kpi-label">Net</div>
                   <div className="kpi-value">{numberFormatIN(rows.reduce((s,r)=>s+ (sanitizeNumber(r.cash_in)-sanitizeNumber(r.cash_out)),0))}</div>
                 </div>
-              </div>
+                </div>
+              </section>
               {bookTotals && (
-                <>
+                <section className="reports-total-group reports-total-group--book" aria-label="Grand total for entire book">
                   <h2 className="reports-kpi-heading">Grand Total — Entire Book</h2>
-                  <div className="kpi-cards">
-                    <div className="kpi">
+                  <div className="kpi-cards kpi-cards--grand-total">
+                    <div className="kpi kpi--grand-total">
                       <div className="kpi-label">Cash In</div>
                       <div className="kpi-value">{numberFormatIN(bookTotals.cashIn)}</div>
                     </div>
-                    <div className="kpi">
+                    <div className="kpi kpi--grand-total">
                       <div className="kpi-label">Cash Out</div>
                       <div className="kpi-value">{numberFormatIN(bookTotals.cashOut)}</div>
                     </div>
-                    <div className="kpi">
+                    <div className="kpi kpi--grand-total">
                       <div className="kpi-label">Net</div>
                       <div className="kpi-value">{numberFormatIN(bookTotals.cashIn - bookTotals.cashOut)}</div>
                     </div>
                   </div>
-                </>
+                </section>
               )}
             </>
           )}
@@ -332,6 +342,12 @@ export default function Reports(){
             </>
           )}
         </div>
+        {rows && reportGeneratedAt && (
+          <footer className="reports-overview-footer">
+            <span>Selected range: <strong>{selectedRangeLabel}</strong></span>
+            <span>Overview generated: <strong>{generatedAtLabel}</strong></span>
+          </footer>
+        )}
       </div>
     </div>
   );

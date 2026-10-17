@@ -217,7 +217,12 @@ router.get(['/reports/export/excel', '/reports/export/csv'], authenticateToken, 
     const totalOut = Number(outRes.rows[0].total_cash_out || 0);
     const overallTotals = await getOverallBookTotals(userId, book_id);
 
-    const buf = await excelBuffer(rows, columns, { totalIn, totalOut, ...overallTotals }, { title: exportTitle });
+    const buf = await excelBuffer(
+      rows,
+      columns,
+      { totalIn, totalOut, ...overallTotals },
+      { title: exportTitle, dateRange: { startDate, endDate }, generatedAt: new Date() }
+    );
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${exportTitle.replace(/[^a-z0-9]/gi,'_').toLowerCase()}_${Date.now()}.xlsx"`);
     res.send(buf);
@@ -277,7 +282,10 @@ router.get('/reports/export/pdf', authenticateToken, async (req, res) => {
       } catch (e) { /* ignore */ }
     }
     const overallTotals = await getOverallBookTotals(userId, book_id);
-    const buf = await pdfBuffer(exportTitle, rows, columns, overallTotals);
+    const buf = await pdfBuffer(exportTitle, rows, columns, overallTotals, {
+      dateRange: { startDate, endDate },
+      generatedAt: new Date()
+    });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${exportTitle.replace(/[^a-z0-9]/gi,'_').toLowerCase()}_${Date.now()}.pdf"`);
     res.send(buf);
