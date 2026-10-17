@@ -205,9 +205,11 @@ function pdfBuffer(title, rows, columns) {
     const scaleFactor = Math.min(1, usableWidth / (pdfColumns.length * 60)); // heuristic: 60px per col
     const headerFontSize = Math.max(7, Math.min(11, Math.round(baseHeaderFont * (scaleFactor + 0.5)))); // ensure readable
     const rowFontSize = Math.max(6, Math.min(10, Math.round(baseRowFont * (scaleFactor + 0.5))));
-    // Row height derived from row font size
+    // Base row height is expanded for wrapped descriptions.
     const rowHeight = Math.max(14, Math.round(rowFontSize * 2.4));
     const headerHeight = Math.max(20, Math.round(headerFontSize * 2.4));
+    const descriptionIndex = pdfColumns.indexOf('description');
+    doc.font('Helvetica').fontSize(rowFontSize);
 
     // number formatter for Indian style
     const fmtIN = (n) => {
@@ -217,9 +219,83 @@ function pdfBuffer(title, rows, columns) {
       return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
+    const descriptionWidth = descriptionIndex < 0 ? 0 : Math.max(1, colWidths[descriptionIndex] - 8);
+    const measureDescription = text => doc.heightOfString(String(text || ''), {
+      width: descriptionWidth,
+      align: 'left',
+      lineGap: 1
+    });
+    const maxDescriptionHeight = bottomLimit - 20 - headerHeight - 20;
+    const splitDescription = text => {
+      const chunks = [];
+      let chunk = '';
+      const maxChars = Math.max(1, Math.floor(
+        (descriptionWidth / (rowFontSize * 0.55)) * (maxDescriptionHeight / (rowFontSize * 1.25))
+      ));
+      const splitLongPart = part => {
+        const parts = [];
+        let offset = 0;
+        while (offset < part.length) {
+          let low = 1;
+          let high = Math.min(maxChars, part.length - offset);
+          let best = 1;
+          while (low <= high) {
+            const middle = Math.floor((low + high) / 2);
+            if (measureDescription(part.slice(offset, offset + middle)) <= maxDescriptionHeight) {
+              best = middle;
+              low = middle + 1;
+            } else {
+              high = middle - 1;
+            }
+          }
+          parts.push(part.slice(offset, offset + best));
+          offset += best;
+        }
+        return parts;
+      };
+      String(text).split(/(\s+)/).filter(Boolean).forEach(part => {
+        if (measureDescription(part) > maxDescriptionHeight) {
+          if (chunk) chunks.push(chunk.trimEnd());
+          chunk = '';
+          const parts = splitLongPart(part);
+          chunks.push(...parts.slice(0, -1));
+          chunk = parts[parts.length - 1] || '';
+          return;
+        }
+        const candidate = chunk + part;
+        if (chunk && measureDescription(candidate) > maxDescriptionHeight) {
+          chunks.push(chunk.trimEnd());
+          chunk = part.trimStart();
+        } else {
+          chunk = candidate;
+        }
+      });
+      if (chunk) chunks.push(chunk.trim());
+      return chunks.length ? chunks : [''];
+    };
+    // Extremely long descriptions continue on a new page instead of running
+    // into the footer or beyond the page boundary.
+    const renderRows = descriptionIndex < 0 ? rows : rows.flatMap(row => {
+      const description = String(row.description || '');
+      if (measureDescription(description) <= maxDescriptionHeight) return [row];
+      return splitDescription(description).map((part, index) => ({
+        ...row,
+        description: part,
+        _continued: index > 0
+      }));
+    });
+
+    const getRowHeight = row => {
+      if (descriptionIndex < 0 || !row.description) return rowHeight;
+      const descriptionHeight = measureDescription(row.description);
+      return Math.max(rowHeight, Math.ceil(descriptionHeight + 6));
+    };
+    const rowHeights = renderRows.map(getRowHeight);
+
     let totalIn = 0, totalOut = 0;
     let rowIndex = 0;
     let finalTableBottom = null;
+    let isFirstTablePage = true;
 
     // helper to draw header for the current page and set tableTop
     const drawHeader = () => {
@@ -247,16 +323,33 @@ function pdfBuffer(title, rows, columns) {
     };
 
     // Render loop: draw pages until all rows rendered
-    while (rowIndex < rows.length) {
+    while (rowIndex < renderRows.length) {
       const tableTop = drawHeader();
 
-      // compute how many rows fit this page
+      // Select as many complete, dynamically sized rows as fit on this page.
       const availableHeight = bottomLimit - doc.y;
-      const slotHeight = rowHeight + 2; // a small gap
-      const rowsPerPage = Math.max(1, Math.floor(availableHeight / slotHeight));
-
       const start = rowIndex;
-      const end = Math.min(rowIndex + rowsPerPage, rows.length);
+      let pageHeight = 0;
+      while (rowIndex < renderRows.length) {
+        const nextHeight = rowHeights[rowIndex] + 2;
+        if (pageHeight > 0 && pageHeight + nextHeight > availableHeight) break;
+        pageHeight += nextHeight;
+        rowIndex += 1;
+      }
+      // Always make progress if an unusually tall row cannot fit in the
+      // remaining space. It will be placed on a fresh page on the next loop.
+      if (rowIndex === start) {
+        if (isFirstTablePage) {
+          doc.addPage({ margin: 20, size: 'A4', layout: 'landscape' });
+          doc.font('Helvetica').fontSize(rowFontSize);
+          isFirstTablePage = false;
+          continue;
+        }
+        pageHeight = Math.min(rowHeights[rowIndex] + 2, availableHeight);
+        rowIndex += 1;
+      }
+      const end = rowIndex;
+      const pageRowHeights = rowHeights.slice(start, end);
 
       // compute x positions
       const xPositions = [marginLeft];
@@ -266,7 +359,7 @@ function pdfBuffer(title, rows, columns) {
       doc.save();
       doc.lineWidth(0.6);
       doc.strokeColor('#e5e7eb');
-      const gridBottom = Math.min(doc.page.height - 60, doc.y + (end - start) * slotHeight);
+      const gridBottom = Math.min(bottomLimit, doc.y + pageHeight);
       for (let xi = 0; xi < xPositions.length; xi++) {
         const xpos = xPositions[xi];
         doc.moveTo(xpos - 2, tableTop).lineTo(xpos - 2, gridBottom).stroke();
@@ -277,10 +370,11 @@ function pdfBuffer(title, rows, columns) {
       let currentY = doc.y;
       doc.font('Helvetica').fontSize(rowFontSize).fillColor('#000');
       for (let idx = start; idx < end; idx++) {
-        const row = rows[idx];
+        const row = renderRows[idx];
+        const currentRowHeight = pageRowHeights[idx - start];
         for (let i = 0; i < pdfColumns.length; i++) {
           const col = pdfColumns[i];
-          let v = row[col];
+          let v = row._continued && col !== 'description' ? '' : row[col];
           if (v === null || v === undefined) v = '';
           if ((col === 'date' || col === 'date_display') && v) {
             const d = new Date(v);
@@ -288,8 +382,8 @@ function pdfBuffer(title, rows, columns) {
           }
           if (col === 'amount') {
             if (v !== null && v !== undefined && v !== '') {
-              if (row['type'] === 'CASH_IN') totalIn += Number(row['amount']) || 0;
-              if (row['type'] === 'CASH_OUT') totalOut += Number(row['amount']) || 0;
+              if (!row._continued && row['type'] === 'CASH_IN') totalIn += Number(row['amount']) || 0;
+              if (!row._continued && row['type'] === 'CASH_OUT') totalOut += Number(row['amount']) || 0;
             }
             v = fmtIN(v);
           }
@@ -304,12 +398,21 @@ function pdfBuffer(title, rows, columns) {
             const display = url ? 'Link' : '';
             doc.text(display, cellX + 4, currentY + 2, { width: colWidths[i] - 8, align: 'center', lineBreak: false });
             if (url) {
-              try { doc.link(cellX + 4, currentY + 2, colWidths[i] - 8, rowHeight, url); } catch (e) { /* ignore */ }
+              try { doc.link(cellX + 4, currentY + 2, colWidths[i] - 8, currentRowHeight, url); } catch (e) { /* ignore */ }
             }
+          } else if (col === 'description') {
+            doc.text(String(v), cellX + 4, currentY + 3, {
+              width: colWidths[i] - 8,
+              align: 'left',
+              lineGap: 1
+            });
           } else {
-            const text = String(v).substring(0, 200); // safe substring
-            // center-align; no wrapping (keeps rowHeight predictable)
-            doc.text(text, cellX + 4, currentY + 2, { width: colWidths[i] - 8, align: 'center', lineBreak: false });
+            const text = String(v).substring(0, 200);
+            doc.text(text, cellX + 4, currentY + Math.max(2, (currentRowHeight - rowFontSize) / 2), {
+              width: colWidths[i] - 8,
+              align: 'center',
+              lineBreak: false
+            });
           }
         }
 
@@ -317,11 +420,10 @@ function pdfBuffer(title, rows, columns) {
         doc.save();
         doc.lineWidth(0.5);
         doc.strokeColor('#f3f4f6');
-        doc.moveTo(marginLeft - 4, currentY + rowHeight).lineTo(marginLeft - 4 + usableWidth + 8, currentY + rowHeight).stroke();
+        doc.moveTo(marginLeft - 4, currentY + currentRowHeight).lineTo(marginLeft - 4 + usableWidth + 8, currentY + currentRowHeight).stroke();
         doc.restore();
 
-        currentY += slotHeight;
-        rowIndex += 1;
+        currentY += currentRowHeight + 2;
       }
 
       // draw page table border
@@ -332,9 +434,10 @@ function pdfBuffer(title, rows, columns) {
       doc.strokeColor('#5d5b5b');
       doc.rect(marginLeft - 4, tableTop, usableWidth + 8, Math.max(10, tableBottom - tableTop)).stroke();
       doc.restore();
+      isFirstTablePage = false;
 
       // add another page if rows remain
-      if (rowIndex < rows.length) {
+      if (rowIndex < renderRows.length) {
         doc.addPage({ margin: 20, size: 'A4', layout: 'landscape' });
         // reset any fonts for the new page
         doc.font('Helvetica').fontSize(rowFontSize);
