@@ -16,11 +16,11 @@ describe('Reports', () => {
   it('disables exports before generate and enables after', async ()=>{
     api.get.mockResolvedValueOnce({ data: { rows: mockRows } });
     render(<Reports />);
-    const csv = screen.getByRole('button', { name: /Export CSV/i });
-    expect(csv).toBeDisabled();
+    const excel = screen.getByRole('button', { name: /Export Excel/i });
+    expect(excel).toBeDisabled();
     const generate = screen.getByRole('button', { name: /Generate report/i }) || screen.getByRole('button', { name: /Generate/i });
     userEvent.click(generate);
-    await waitFor(()=> expect(csv).not.toBeDisabled());
+    await waitFor(()=> expect(excel).not.toBeDisabled());
     // check formatted value present
     expect(screen.getByText('1,000.00')).toBeInTheDocument();
   });
