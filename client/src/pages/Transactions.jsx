@@ -450,8 +450,12 @@ function ViewModal({ tx, onClose }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{d}</div>
                       <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>{time}</div>
+                      {r.description && (
+                        <div style={{ marginTop: 8, fontSize: 13, color: '#333', overflowWrap: 'anywhere' }}>
+                          <span style={{ fontWeight: 600 }}>Description: </span>{r.description}
+                        </div>
+                      )}
                       <div style={{ marginTop: 8, fontSize: 13, color: '#333' }}>Entry By: <span style={{ fontWeight: 600 }}>{r.user_name || r.created_by || '-'}</span></div>
-                      {/* description & category are not shown in list per your request */}
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
