@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 // Splash screen component
 // Expects an image at /splash-logo.png (place your provided logo in the project's `client/public` folder)
-export default function Splash({ duration = 5000, onFinish = () => {} }) {
+export default function Splash({ duration = 1800, onFinish = () => {} }) {
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
@@ -97,12 +97,12 @@ export default function Splash({ duration = 5000, onFinish = () => {} }) {
   // trigger CSS width animation via inline style + small hack: set width to 100% after mount
   const [barWidth, setBarWidth] = useState('0%');
   useEffect(() => {
-    // Stepwise progress: 1s -> 20%, 3s -> 70%, end -> 100%
+    // Scale progress milestones with the configured splash duration.
     const timers = [];
     // small initial bump so bar is visible
     timers.push(setTimeout(() => setBarWidth('5%'), 50));
-    timers.push(setTimeout(() => setBarWidth('20%'), 1000));
-    timers.push(setTimeout(() => setBarWidth('70%'), 3000));
+    timers.push(setTimeout(() => setBarWidth('20%'), duration * 0.2));
+    timers.push(setTimeout(() => setBarWidth('70%'), duration * 0.65));
     timers.push(setTimeout(() => setBarWidth('100%'), duration));
     return () => timers.forEach((t) => clearTimeout(t));
   }, [duration]);

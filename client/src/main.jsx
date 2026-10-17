@@ -10,7 +10,7 @@ function Root() {
   return (
     <>
       <App />
-      {showSplash && <Splash duration={5000} onFinish={() => setShowSplash(false)} />}
+      {showSplash && <Splash duration={1800} onFinish={() => setShowSplash(false)} />}
     </>
   );
 }
