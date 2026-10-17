@@ -30,9 +30,11 @@ function buildReportQuery(bookId, dateRange = {}) {
 export default function Reports(){
   const { activeBookId } = useBooks();
   const [rows, setRows] = useState(null);
+  const [dateFilterEnabled, setDateFilterEnabled] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [appliedDateRange, setAppliedDateRange] = useState({ startDate: '', endDate: '' });
+  const [appliedDateFilterEnabled, setAppliedDateFilterEnabled] = useState(true);
   const [appliedBookId, setAppliedBookId] = useState(activeBookId);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -41,15 +43,17 @@ export default function Reports(){
   const pageSize = 10;
   const [doneBy, setDoneBy] = useState('all');
 
-  const filtersChanged = startDate !== appliedDateRange.startDate || endDate !== appliedDateRange.endDate || activeBookId !== appliedBookId;
+  const filtersChanged = dateFilterEnabled !== appliedDateFilterEnabled ||
+    (dateFilterEnabled && (startDate !== appliedDateRange.startDate || endDate !== appliedDateRange.endDate)) ||
+    activeBookId !== appliedBookId;
 
   const fetchData = async () => {
-    if (startDate && endDate && startDate > endDate) {
+    if (dateFilterEnabled && startDate && endDate && startDate > endDate) {
       setError('End date must be on or after the start date.');
       return;
     }
 
-    const dateRange = { startDate, endDate };
+    const dateRange = dateFilterEnabled ? { startDate, endDate } : { startDate: '', endDate: '' };
     setLoading(true); setError(null);
     try {
       // fetch detailed rows (show all transactions matching filters)
@@ -71,6 +75,7 @@ export default function Reports(){
       });
       setRows(sanitized);
       setAppliedDateRange(dateRange);
+      setAppliedDateFilterEnabled(dateFilterEnabled);
       setAppliedBookId(activeBookId);
     } catch (err) {
       console.error('Failed to fetch report details:', err);
@@ -172,20 +177,24 @@ export default function Reports(){
         <header className="reports-header">
           <div>
             <h1>Reports</h1>
-            <p className="reports-sub">Choose a date range, then generate Excel/PDF reports</p>
+            <p className="reports-sub">Choose whether to filter by date, then generate Excel/PDF reports</p>
           </div>
         </header>
 
         {/* Controls: always visible and first in DOM */}
         <section className="reports-controls" role="region" aria-label="Report controls">
           <div className="controls-left reports-date-filters">
+            <label className="reports-date-toggle">
+              <input type="checkbox" checked={dateFilterEnabled} onChange={e => setDateFilterEnabled(e.target.checked)} />
+              <span>Filter by date</span>
+            </label>
             <label className="reports-date-field">
               <span className="label">Start date</span>
-              <input type="date" aria-label="Start date" value={startDate} max={endDate || undefined} onChange={e => setStartDate(e.target.value)} />
+              <input type="date" aria-label="Start date" value={startDate} max={endDate || undefined} disabled={!dateFilterEnabled} onChange={e => setStartDate(e.target.value)} />
             </label>
             <label className="reports-date-field">
               <span className="label">End date</span>
-              <input type="date" aria-label="End date" value={endDate} min={startDate || undefined} onChange={e => setEndDate(e.target.value)} />
+              <input type="date" aria-label="End date" value={endDate} min={startDate || undefined} disabled={!dateFilterEnabled} onChange={e => setEndDate(e.target.value)} />
             </label>
           </div>
 
