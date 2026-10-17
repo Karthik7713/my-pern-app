@@ -1,6 +1,10 @@
 const PDFDocument = require('pdfkit');
 const stream = require('stream');
 const ExcelJS = require('exceljs');
+const fs = require('fs');
+const path = require('path');
+
+const reportLogoPath = path.resolve(__dirname, '../../../client/public/splash-logo.png');
 
 function rowsToCsv(rows, columns, options = {}) {
   // Rename user_name column to 'Done By' in header
@@ -57,7 +61,7 @@ async function excelBuffer(rows, columns, summary, options = {}) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'My Pern App';
   const worksheet = workbook.addWorksheet('Transactions', {
-    views: [{ state: 'frozen', ySplit: options.title ? 2 : 1 }]
+    views: [{ state: 'frozen', ySplit: 5 }]
   });
   worksheet.columns = columns.map(key => ({
     header: headerMap[key] || key,
@@ -66,14 +70,22 @@ async function excelBuffer(rows, columns, summary, options = {}) {
     style: { alignment: { vertical: 'top', wrapText: key === 'description' } }
   }));
 
-  if (options.title) {
-    worksheet.insertRow(1, [options.title]);
-    worksheet.mergeCells(1, 1, 1, columns.length);
-    worksheet.getCell(1, 1).font = { bold: true, size: 16 };
-    worksheet.getCell(1, 1).alignment = { horizontal: 'center' };
+  worksheet.insertRows(1, Array.from({ length: 4 }, () => columns.map(() => '')));
+  worksheet.getRow(1).height = 22;
+  worksheet.getRow(2).height = 22;
+  worksheet.getRow(3).height = 22;
+  worksheet.getRow(4).height = 22;
+  const titleColumn = Math.min(3, columns.length);
+  if (columns.length >= 3) worksheet.mergeCells(1, titleColumn, 4, columns.length);
+  worksheet.getCell(1, titleColumn).value = options.title || 'Transactions Report';
+  worksheet.getCell(1, titleColumn).font = { bold: true, size: 16 };
+  worksheet.getCell(1, titleColumn).alignment = { horizontal: 'center', vertical: 'middle' };
+  if (fs.existsSync(reportLogoPath)) {
+    const imageId = workbook.addImage({ filename: reportLogoPath, extension: 'png' });
+    worksheet.addImage(imageId, { tl: { col: 0, row: 0 }, ext: { width: 62, height: 62 } });
   }
 
-  const headerRow = worksheet.getRow(options.title ? 2 : 1);
+  const headerRow = worksheet.getRow(5);
   headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
   headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
   headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -136,9 +148,20 @@ function pdfBuffer(title, rows, columns) {
     const usableWidth = doc.page.width - marginLeft - marginRight;
     const bottomLimit = doc.page.height - 60; // leave space for footer/summary
 
-    // Title (kept simple)
-    doc.fontSize(16).text(title || 'Report', { align: 'center' });
-    doc.moveDown(0.8);
+    // Add the brand mark only to generated reports, with the title centered
+    // alongside it at the top of the page.
+    const logoTop = 22;
+    const logoSize = 48;
+    if (fs.existsSync(reportLogoPath)) {
+      doc.image(reportLogoPath, marginLeft, logoTop, { fit: [logoSize, logoSize] });
+    }
+    doc.font('Helvetica-Bold').fontSize(16).text(
+      title || 'Report',
+      marginLeft,
+      logoTop + 12,
+      { width: usableWidth, align: 'center' }
+    );
+    doc.y = logoTop + logoSize + 8;
 
     const pdfColumns = columns;
     const headerMap = {
