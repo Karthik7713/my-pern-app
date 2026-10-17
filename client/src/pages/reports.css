@@ -1,6 +1,6 @@
 /* Styles for Reports page */
-.reports-container { padding: 8px 20px 20px 20px; display:flex; justify-content:center; padding-top: calc(var(--navbar-height, 56px) + 8px); }
-.reports-inner { width:100%; max-width:1100px; background:#ffffff; overflow:visible; padding:16px; padding-top:0; border-radius:10px; box-shadow:0 4px 12px rgba(2,6,23,0.06); }
+.reports-container { width:calc(100% + 4rem); margin-left:-2rem; padding: 8px 24px 20px; display:flex; justify-content:center; padding-top: calc(var(--navbar-height, 56px) + 8px); }
+.reports-inner { width:100%; max-width:1280px; background:#ffffff; overflow:visible; padding:16px; padding-top:0; border-radius:10px; box-shadow:0 4px 12px rgba(2,6,23,0.06); }
 .reports-header h1 { margin:0; font-size:22px; color:var(--text-color, #0f172a); }
 .reports-sub { margin:2px 0 8px 0; color:var(--muted, #6b7280); }
 .reports-controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:12px; background:#fff; border-radius:10px; margin:0 0 12px 0; box-shadow:0 4px 12px rgba(2,6,23,0.06); width:100%; box-sizing:border-box; position:relative; z-index:40; }
@@ -97,6 +97,8 @@
 /* Responsive: stack controls on small screens */
 
 @media (max-width:768px){
+  .reports-container { width:calc(100% + 2rem); margin-left:-1rem; padding: calc(var(--navbar-height, 56px) + 8px) 8px 20px; }
+  .reports-inner { padding-left:12px; padding-right:12px; }
   .reports-controls { flex-direction:column; align-items:stretch; }
   .controls-left, .controls-middle, .controls-right { width:100%; justify-content:flex-start; }
   .reports-date-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:end; gap:12px; }
