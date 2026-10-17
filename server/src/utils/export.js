@@ -1,10 +1,6 @@
 const PDFDocument = require('pdfkit');
 const stream = require('stream');
 const ExcelJS = require('exceljs');
-const fs = require('fs');
-const path = require('path');
-
-const reportLogoPath = path.resolve(__dirname, '../../../client/public/splash-logo.png');
 
 function rowsToCsv(rows, columns, options = {}) {
   // Rename user_name column to 'Done By' in header
@@ -75,14 +71,16 @@ async function excelBuffer(rows, columns, summary, options = {}) {
   worksheet.getRow(2).height = 22;
   worksheet.getRow(3).height = 22;
   worksheet.getRow(4).height = 22;
-  const titleColumn = Math.min(3, columns.length);
-  if (columns.length >= 3) worksheet.mergeCells(1, titleColumn, 4, columns.length);
-  worksheet.getCell(1, titleColumn).value = options.title || 'Transactions Report';
-  worksheet.getCell(1, titleColumn).font = { bold: true, size: 16 };
-  worksheet.getCell(1, titleColumn).alignment = { horizontal: 'center', vertical: 'middle' };
-  if (fs.existsSync(reportLogoPath)) {
-    const imageId = workbook.addImage({ filename: reportLogoPath, extension: 'png' });
-    worksheet.addImage(imageId, { tl: { col: 0, row: 0 }, ext: { width: 62, height: 62 } });
+  const brandLastColumn = Math.min(2, columns.length);
+  worksheet.mergeCells(1, 1, 4, brandLastColumn);
+  worksheet.getCell(1, 1).value = 'BHARATHI CONSTRUCTION';
+  worksheet.getCell(1, 1).font = { name: 'Georgia', bold: true, italic: true, size: 14, color: { argb: 'FFC18B22' } };
+  worksheet.getCell(1, 1).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  if (columns.length > 2) {
+    worksheet.mergeCells(1, 3, 4, columns.length);
+    worksheet.getCell(1, 3).value = options.title || 'Transactions Report';
+    worksheet.getCell(1, 3).font = { bold: true, size: 16 };
+    worksheet.getCell(1, 3).alignment = { horizontal: 'center', vertical: 'middle' };
   }
 
   const headerRow = worksheet.getRow(5);
@@ -148,20 +146,21 @@ function pdfBuffer(title, rows, columns) {
     const usableWidth = doc.page.width - marginLeft - marginRight;
     const bottomLimit = doc.page.height - 60; // leave space for footer/summary
 
-    // Add the brand mark only to generated reports, with the title centered
-    // alongside it at the top of the page.
-    const logoTop = 22;
-    const logoSize = 48;
-    if (fs.existsSync(reportLogoPath)) {
-      doc.image(reportLogoPath, marginLeft, logoTop, { fit: [logoSize, logoSize] });
-    }
-    doc.font('Helvetica-Bold').fontSize(16).text(
+    // Use a decorative text wordmark only in the generated report header.
+    const reportHeaderTop = 30;
+    doc.font('Times-BoldItalic').fontSize(12).fillColor('#b8860b').text(
+      'BHARATHI CONSTRUCTION',
+      marginLeft,
+      reportHeaderTop + 8,
+      { width: 180, align: 'left', lineBreak: false }
+    );
+    doc.font('Helvetica-Bold').fontSize(16).fillColor('#000').text(
       title || 'Report',
       marginLeft,
-      logoTop + 12,
+      reportHeaderTop + 8,
       { width: usableWidth, align: 'center' }
     );
-    doc.y = logoTop + logoSize + 8;
+    doc.y = reportHeaderTop + 44;
 
     const pdfColumns = columns;
     const headerMap = {
