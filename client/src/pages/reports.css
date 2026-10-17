@@ -5,6 +5,10 @@
 .reports-sub { margin:2px 0 8px 0; color:var(--muted, #6b7280); }
 .reports-controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:12px; background:#fff; border-radius:10px; margin:0 0 12px 0; box-shadow:0 4px 12px rgba(2,6,23,0.06); width:100%; box-sizing:border-box; position:relative; z-index:40; }
 .controls-left, .controls-middle, .controls-right { display:flex; align-items:center; gap:8px; min-width:0; }
+.reports-date-filters { flex-wrap:wrap; gap:10px 14px; }
+.reports-date-field { display:flex; flex-direction:column; gap:4px; min-width:145px; }
+.reports-date-field input { box-sizing:border-box; width:100%; min-height:36px; padding:7px 9px; border:1px solid #d1d5db; border-radius:7px; background:#fff; color:#111827; font:inherit; }
+.reports-date-field input:focus { outline:2px solid #2563eb; outline-offset:1px; }
 .controls-right { margin-left: auto; }
 .label { font-size:13px; color:var(--muted,#6b7280); }
 .controls-bar select { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; }

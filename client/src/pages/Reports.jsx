@@ -19,9 +19,21 @@ function numberFormatIN(x){
   return formatter.format(Number(x));
 }
 
+function buildReportQuery(bookId, dateRange = {}) {
+  const params = new URLSearchParams();
+  if (bookId) params.set('book_id', bookId);
+  if (dateRange.startDate) params.set('startDate', dateRange.startDate);
+  if (dateRange.endDate) params.set('endDate', dateRange.endDate);
+  return params.toString();
+}
+
 export default function Reports(){
   const { activeBookId } = useBooks();
   const [rows, setRows] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [appliedDateRange, setAppliedDateRange] = useState({ startDate: '', endDate: '' });
+  const [appliedBookId, setAppliedBookId] = useState(activeBookId);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState({ key: 'key', dir: 'asc' });
@@ -29,12 +41,20 @@ export default function Reports(){
   const pageSize = 10;
   const [doneBy, setDoneBy] = useState('all');
 
+  const filtersChanged = startDate !== appliedDateRange.startDate || endDate !== appliedDateRange.endDate || activeBookId !== appliedBookId;
+
   const fetchData = async () => {
+    if (startDate && endDate && startDate > endDate) {
+      setError('End date must be on or after the start date.');
+      return;
+    }
+
+    const dateRange = { startDate, endDate };
     setLoading(true); setError(null);
     try {
       // fetch detailed rows (show all transactions matching filters)
-      const bookParam = activeBookId ? `?book_id=${encodeURIComponent(activeBookId)}` : '';
-      const res = await api.get(`/reports/details${bookParam}`);
+      const query = buildReportQuery(activeBookId, dateRange);
+      const res = await api.get(`/reports/details${query ? `?${query}` : ''}`);
       console.debug('reports details raw', res.data);
       const rowsIn = res.data?.rows || [];
       // derive cash_in / cash_out and ensure date_display/date_iso exist
@@ -50,6 +70,8 @@ export default function Reports(){
         };
       });
       setRows(sanitized);
+      setAppliedDateRange(dateRange);
+      setAppliedBookId(activeBookId);
     } catch (err) {
       console.error('Failed to fetch report details:', err);
       setError('Failed to fetch report details. Try again or check server connection.');
@@ -61,9 +83,9 @@ export default function Reports(){
 
   const exportExcel = async () => {
     if (!rows || rows.length === 0) return;
-    const bookParam = activeBookId ? `?book_id=${encodeURIComponent(activeBookId)}` : '';
+    const query = buildReportQuery(appliedBookId, appliedDateRange);
     try {
-      const res = await api.get(`/reports/export/excel${bookParam}`, { responseType: 'blob' });
+      const res = await api.get(`/reports/export/excel${query ? `?${query}` : ''}`, { responseType: 'blob' });
       const headers = res.headers || {};
       const contentType = (headers['content-type'] || headers['Content-Type'] || '') + '';
 
@@ -108,8 +130,8 @@ export default function Reports(){
 
   const exportPdf = () => {
     if (!rows || rows.length === 0) return;
-    const bookParam = activeBookId ? `?book_id=${encodeURIComponent(activeBookId)}` : '';
-    api.get(`/reports/export/pdf${bookParam}`, { responseType: 'blob' }).then(res => {
+    const query = buildReportQuery(appliedBookId, appliedDateRange);
+    api.get(`/reports/export/pdf${query ? `?${query}` : ''}`, { responseType: 'blob' }).then(res => {
       const url = window.URL.createObjectURL(res.data);
       const a = document.createElement('a'); a.href = url; a.download = `report_${Date.now()}.pdf`; a.click();
     }).catch(() => setError('Export failed'));
@@ -150,12 +172,23 @@ export default function Reports(){
         <header className="reports-header">
           <div>
             <h1>Reports</h1>
-            <p className="reports-sub">Generate Excel/PDF exports for this book</p>
+            <p className="reports-sub">Choose a date range, then generate Excel/PDF reports</p>
           </div>
         </header>
 
         {/* Controls: always visible and first in DOM */}
         <section className="reports-controls" role="region" aria-label="Report controls">
+          <div className="controls-left reports-date-filters">
+            <label className="reports-date-field">
+              <span className="label">Start date</span>
+              <input type="date" aria-label="Start date" value={startDate} max={endDate || undefined} onChange={e => setStartDate(e.target.value)} />
+            </label>
+            <label className="reports-date-field">
+              <span className="label">End date</span>
+              <input type="date" aria-label="End date" value={endDate} min={startDate || undefined} onChange={e => setEndDate(e.target.value)} />
+            </label>
+          </div>
+
           <div className="controls-middle">
             <button className="btn primary" onClick={fetchData} aria-label="Generate report" disabled={loading} aria-disabled={loading}>
               {loading ? <span className="spinner" aria-hidden="true" /> : '▶'}
@@ -164,8 +197,8 @@ export default function Reports(){
           </div>
 
           <div className="controls-right">
-            <button className="btn secondary csv" onClick={exportExcel} aria-label="Export Excel" disabled={!rows || rows.length===0 || loading} aria-disabled={!rows || rows.length===0 || loading} title={!rows || rows.length===0 ? 'Generate results first' : 'Download an editable Excel workbook'}>Export Excel</button>
-            <button className="btn secondary pdf" onClick={exportPdf} aria-label="Export PDF" disabled={!rows || rows.length===0 || loading} aria-disabled={!rows || rows.length===0 || loading} title={!rows || rows.length===0 ? 'Generate results first' : 'Export PDF'}>Export PDF</button>
+            <button className="btn secondary csv" onClick={exportExcel} aria-label="Export Excel" disabled={!rows || rows.length===0 || loading || filtersChanged} aria-disabled={!rows || rows.length===0 || loading || filtersChanged} title={filtersChanged ? 'Generate the report again to apply date changes' : !rows || rows.length===0 ? 'Generate results first' : 'Download an editable Excel workbook'}>Export Excel</button>
+            <button className="btn secondary pdf" onClick={exportPdf} aria-label="Export PDF" disabled={!rows || rows.length===0 || loading || filtersChanged} aria-disabled={!rows || rows.length===0 || loading || filtersChanged} title={filtersChanged ? 'Generate the report again to apply date changes' : !rows || rows.length===0 ? 'Generate results first' : 'Export PDF'}>Export PDF</button>
           </div>
         </section>
 
