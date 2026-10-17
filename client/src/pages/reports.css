@@ -27,18 +27,18 @@
 .btn.primary { background:#111827; color:white; border:1px solid rgba(0,0,0,0.08); }
 .btn.small { padding:6px 10px; }
 .reports-summary { margin-top:16px; z-index:30; position:relative; }
-.reports-kpi-heading { margin:12px 0 8px; color:#374151; font-size:15px; font-weight:600; }
-.reports-total-group { padding:12px 14px 2px; margin-bottom:12px; border:1px solid #dbeafe; border-radius:10px; background:#f8fbff; }
+.reports-kpi-heading { margin:4px 0 6px; color:#374151; font-size:15px; font-weight:600; }
+.reports-total-group { padding:8px 10px 0; margin-bottom:8px; border:1px solid #dbeafe; border-radius:10px; background:#f8fbff; }
 .reports-total-group--range { border-color:#93c5fd; background:linear-gradient(120deg,#eff6ff,#ffffff); }
 .reports-total-group--book { border:2px solid #eab308; background:linear-gradient(120deg,#fffbeb,#ffffff); box-shadow:0 3px 12px rgba(202,138,4,0.12); }
 .reports-total-group--book .reports-kpi-heading { color:#854d0e; }
 .reports-range-badge { display:inline-flex; margin-left:8px; padding:3px 9px; border-radius:999px; background:#dbeafe; color:#1d4ed8; font-size:13px; font-weight:700; vertical-align:middle; }
-.kpi-cards { display:flex; gap:12px; margin-bottom:12px; }
-.kpi { padding:10px 12px; border-radius:8px; background: #fff; box-shadow:0 0 0 1px rgba(15,23,42,0.03); min-width:140px; }
+.kpi-cards { display:flex; gap:8px; margin-bottom:8px; }
+.kpi { padding:7px 10px; border-radius:8px; background: #fff; box-shadow:0 0 0 1px rgba(15,23,42,0.03); min-width:140px; }
 .kpi--range { border:1px solid #bfdbfe; }
 .kpi--grand-total { border:1px solid #facc15; background:#fffdf2; box-shadow:0 2px 7px rgba(202,138,4,0.1); }
 .kpi-label { color:#6b7280; font-size:12px; }
-.kpi-value { font-size:18px; margin-top:6px; font-weight:600; }
+.kpi-value { font-size:17px; margin-top:3px; font-weight:600; }
 .reports-results { max-height:420px; overflow:auto; border-radius:8px; box-shadow:0 0 0 1px rgba(15,23,42,0.03); position:relative; z-index:10; background:#ffffff; }
 .reports-table-wrapper { border-radius:8px; }
 .reports-table { width:100%; border-collapse:collapse; min-width:600px; }
@@ -110,6 +110,6 @@
   .controls-right { display:flex; gap:8px; flex-wrap:wrap; }
   .btn { width: auto; }
   .btn.full { width:100%; }
-  .kpi-cards { flex-direction:column; }
+  .kpi-cards { flex-direction:column; gap:7px; margin-bottom:7px; }
   .reports-table { min-width:320px; }
 }
