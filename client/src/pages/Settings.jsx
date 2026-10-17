@@ -9,7 +9,6 @@ export default function Settings() {
   // default values when no user data available
   const [name, setName] = useState('name');
   const [email, setEmail] = useState('gmanil');
-  const [currency, setCurrency] = useState('USD');
   const [theme, setTheme] = useState('light');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -24,7 +23,6 @@ export default function Settings() {
     if (user) {
       setName(user.name || '');
       setEmail(user.email || '');
-      setCurrency(user.currency_preference || 'USD');
       setTheme(user.theme_preference || 'light');
     }
   }, [user]);
@@ -35,7 +33,7 @@ export default function Settings() {
       setLoading(true);
       setError(null);
       setMessage(null);
-      const res = await api.put('/users/me', { name, email, currency_preference: currency, theme_preference: theme });
+      const res = await api.put('/users/me', { name, email, theme_preference: theme });
       // server returns envelope { status, data }, normalize to store the actual user object
       setUser(res.data?.data ?? res.data);
       toggleTheme(theme);
@@ -84,15 +82,6 @@ export default function Settings() {
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', marginBottom: 4, color: colors.text, fontWeight: 500 }}>Email</label>
           <input value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: 8, border: `1px solid ${colors.border}`, borderRadius: 4, background: colors.input, color: colors.text }} />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', marginBottom: 4, color: colors.text, fontWeight: 500 }}>Currency</label>
-          <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={{ width: '100%', padding: 8, border: `1px solid ${colors.border}`, borderRadius: 4, background: colors.input, color: colors.text }}>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="INR">INR</option>
-            <option value="GBP">GBP</option>
-          </select>
         </div>
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', marginBottom: 4, color: colors.text, fontWeight: 500 }}>Theme</label>
