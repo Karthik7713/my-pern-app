@@ -6,6 +6,23 @@ const { pdfBuffer, excelBuffer } = require('../utils/export');
 
 const router = express.Router();
 
+async function getOverallBookTotals(userId, bookId) {
+  const scopeColumn = bookId ? 'book_id' : 'user_id';
+  const scopeValue = bookId || userId;
+  const { rows } = await pool.query(
+    `SELECT
+      COALESCE(SUM(CASE WHEN type = 'CASH_IN' THEN amount ELSE 0 END), 0)::numeric(12,2) AS total_cash_in,
+      COALESCE(SUM(CASE WHEN type = 'CASH_OUT' THEN amount ELSE 0 END), 0)::numeric(12,2) AS total_cash_out
+     FROM transactions
+     WHERE ${scopeColumn} = $1 AND is_deleted = false`,
+    [scopeValue]
+  );
+  return {
+    bookTotalIn: Number(rows[0]?.total_cash_in || 0),
+    bookTotalOut: Number(rows[0]?.total_cash_out || 0)
+  };
+}
+
 // Dashboard summary: totals and recent transactions
 router.get('/dashboard/summary', authenticateToken, async (req, res) => {
   try {
@@ -198,8 +215,9 @@ router.get(['/reports/export/excel', '/reports/export/csv'], authenticateToken, 
     const outRes = await pool.query(summaryQOut, vals);
     const totalIn = Number(inRes.rows[0].total_cash_in || 0);
     const totalOut = Number(outRes.rows[0].total_cash_out || 0);
+    const overallTotals = await getOverallBookTotals(userId, book_id);
 
-    const buf = await excelBuffer(rows, columns, { totalIn, totalOut }, { title: exportTitle });
+    const buf = await excelBuffer(rows, columns, { totalIn, totalOut, ...overallTotals }, { title: exportTitle });
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${exportTitle.replace(/[^a-z0-9]/gi,'_').toLowerCase()}_${Date.now()}.xlsx"`);
     res.send(buf);
@@ -258,7 +276,8 @@ router.get('/reports/export/pdf', authenticateToken, async (req, res) => {
         if (bk.rows[0] && bk.rows[0].name) exportTitle = `${bk.rows[0].name} Report`;
       } catch (e) { /* ignore */ }
     }
-    const buf = await pdfBuffer(exportTitle, rows, columns);
+    const overallTotals = await getOverallBookTotals(userId, book_id);
+    const buf = await pdfBuffer(exportTitle, rows, columns, overallTotals);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${exportTitle.replace(/[^a-z0-9]/gi,'_').toLowerCase()}_${Date.now()}.pdf"`);
     res.send(buf);

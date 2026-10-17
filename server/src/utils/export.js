@@ -113,23 +113,36 @@ async function excelBuffer(rows, columns, summary, options = {}) {
 
   if (summary && (summary.totalIn !== undefined || summary.totalOut !== undefined)) {
     worksheet.addRow([]);
-    worksheet.addRow(['Summary']);
+    worksheet.addRow(['Selected Range Summary']);
     worksheet.addRow(['Cash In', Number(summary.totalIn || 0)]);
     worksheet.addRow(['Cash Out', Number(summary.totalOut || 0)]);
     worksheet.addRow(['Net Balance', Number(summary.totalIn || 0) - Number(summary.totalOut || 0)]);
-    const summaryStart = worksheet.rowCount - 3;
-    for (let rowNo = summaryStart; rowNo <= worksheet.rowCount; rowNo++) {
+    worksheet.addRow([]);
+    worksheet.addRow(['GRAND TOTAL - ENTIRE BOOK']);
+    worksheet.addRow(['Cash In', Number(summary.bookTotalIn ?? summary.totalIn ?? 0)]);
+    worksheet.addRow(['Cash Out', Number(summary.bookTotalOut ?? summary.totalOut ?? 0)]);
+    worksheet.addRow([
+      'Net Balance',
+      Number(summary.bookTotalIn ?? summary.totalIn ?? 0) - Number(summary.bookTotalOut ?? summary.totalOut ?? 0)
+    ]);
+    const summaryTitleRows = [worksheet.rowCount - 8, worksheet.rowCount - 3];
+    summaryTitleRows.forEach(rowNo => {
+      worksheet.getRow(rowNo).getCell(1).font = { bold: true, size: 12 };
+    });
+    const summaryValueRows = [
+      worksheet.rowCount - 7, worksheet.rowCount - 6, worksheet.rowCount - 5,
+      worksheet.rowCount - 2, worksheet.rowCount - 1, worksheet.rowCount
+    ];
+    summaryValueRows.forEach(rowNo => {
       worksheet.getRow(rowNo).getCell(1).font = { bold: true };
-    }
-    for (let rowNo = summaryStart + 1; rowNo <= worksheet.rowCount; rowNo++) {
       worksheet.getRow(rowNo).getCell(2).numFmt = '#,##0.00';
-    }
+    });
   }
 
   return workbook.xlsx.writeBuffer();
 }
 
-function pdfBuffer(title, rows, columns) {
+function pdfBuffer(title, rows, columns, overallTotals = {}) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 20, size: 'A4', layout: 'landscape' });
     const passthrough = new stream.PassThrough();
@@ -468,37 +481,43 @@ function pdfBuffer(title, rows, columns) {
       }
     }
 
-    // Footer summary cards (same layout as original)
-    doc.moveDown(0.6);
-    const balance = totalIn - totalOut;
+    // Keep selected-range totals and whole-book grand totals distinct.
     const gap = 12;
-    const cardHeight = 36;
+    const cardHeight = 34;
     const cardWidth = Math.floor((usableWidth - 2 * gap) / 3);
     const startX = marginLeft;
-    const startY = doc.y;
+    const drawSummaryGroup = (label, cashIn, cashOut, y) => {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#111827').text(label, startX, y, { width: usableWidth });
+      const cardY = y + 14;
+      const values = [
+        { label: 'Cash In', value: cashIn, fill: '#eef2ff', stroke: '#b4c6fc', color: '#1e3a8a' },
+        { label: 'Cash Out', value: cashOut, fill: '#fee2e2', stroke: '#fca5a5', color: '#b91c1c' },
+        { label: 'Net Balance', value: cashIn - cashOut, fill: '#f0fdf4', stroke: '#6ee7b7', color: '#166534' }
+      ];
+      values.forEach((item, index) => {
+        const x = startX + index * (cardWidth + gap);
+        doc.save();
+        doc.roundedRect(x, cardY, cardWidth, cardHeight, 6).fillAndStroke(item.fill, item.stroke);
+        doc.fillColor(item.color).font('Helvetica-Bold').fontSize(9).text(item.label, x + 8, cardY + 5);
+        doc.font('Helvetica').fontSize(11).text(item.value.toLocaleString('en-IN', { minimumFractionDigits: 2 }), x + 8, cardY + 17);
+        doc.restore();
+      });
+      return cardY + cardHeight;
+    };
 
-    // Cash In
-    doc.save();
-    doc.roundedRect(startX, startY, cardWidth, cardHeight, 6).fillAndStroke('#eef2ff', '#b4c6fc');
-    doc.fillColor('#1e3a8a').font('Helvetica-Bold').fontSize(10).text('Cash In', startX + 8, startY + 6);
-    doc.font('Helvetica').fontSize(12).text(totalIn.toLocaleString('en-IN', { minimumFractionDigits: 2 }), startX + 8, startY + 18);
-    doc.restore();
-
-    // Cash Out
-    doc.save();
-    doc.roundedRect(startX + cardWidth + gap, startY, cardWidth, cardHeight, 6).fillAndStroke('#fee2e2', '#fca5a5');
-    doc.fillColor('#b91c1c').font('Helvetica-Bold').fontSize(10).text('Cash Out', startX + cardWidth + gap + 8, startY + 6);
-    doc.font('Helvetica').fontSize(12).text(totalOut.toLocaleString('en-IN', { minimumFractionDigits: 2 }), startX + cardWidth + gap + 8, startY + 18);
-    doc.restore();
-
-    // Balance
-    doc.save();
-    doc.roundedRect(startX + 2 * (cardWidth + gap), startY, cardWidth, cardHeight, 6).fillAndStroke('#f0fdf4', '#6ee7b7');
-    doc.fillColor('#166534').font('Helvetica-Bold').fontSize(10).text('Balance', startX + 2 * (cardWidth + gap) + 8, startY + 6);
-    doc.font('Helvetica').fontSize(12).text(balance.toLocaleString('en-IN', { minimumFractionDigits: 2 }), startX + 2 * (cardWidth + gap) + 8, startY + 18);
-    doc.restore();
-
-    doc.moveDown(1.2);
+    doc.moveDown(0.6);
+    const summaryHeight = 130;
+    if (doc.y + summaryHeight > bottomLimit) doc.addPage({ margin: 20, size: 'A4', layout: 'landscape' });
+    let summaryY = doc.y;
+    summaryY = drawSummaryGroup('Selected Range Totals', totalIn, totalOut, summaryY);
+    summaryY += 7;
+    summaryY = drawSummaryGroup(
+      'GRAND TOTAL - ENTIRE BOOK',
+      Number(overallTotals.bookTotalIn ?? totalIn),
+      Number(overallTotals.bookTotalOut ?? totalOut),
+      summaryY
+    );
+    doc.y = summaryY + 8;
 
     // Generated date
     doc.font('Helvetica').fontSize(7).fillColor('#000');

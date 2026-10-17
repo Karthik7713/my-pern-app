@@ -56,6 +56,7 @@ export default function Reports(){
 
     const dateRange = dateFilterEnabled ? { startDate, endDate } : { startDate: '', endDate: '' };
     setLoading(true); setError(null);
+    setBookTotals(null);
     try {
       // fetch detailed rows (show all transactions matching filters)
       const query = buildReportQuery(activeBookId, dateRange);
@@ -261,7 +262,7 @@ export default function Reports(){
               </div>
               {bookTotals && (
                 <>
-                  <h2 className="reports-kpi-heading">Entire book</h2>
+                  <h2 className="reports-kpi-heading">Grand Total — Entire Book</h2>
                   <div className="kpi-cards">
                     <div className="kpi">
                       <div className="kpi-label">Cash In</div>
