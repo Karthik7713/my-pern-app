@@ -21,7 +21,6 @@ function numberFormatIN(x){
 
 export default function Reports(){
   const { activeBookId } = useBooks();
-  const [period, setPeriod] = useState('daily');
   const [rows, setRows] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -151,21 +150,12 @@ export default function Reports(){
         <header className="reports-header">
           <div>
             <h1>Reports</h1>
-            <p className="reports-sub">Generate Excel/PDF exports for selected period</p>
+            <p className="reports-sub">Generate Excel/PDF exports for this book</p>
           </div>
         </header>
 
         {/* Controls: always visible and first in DOM */}
         <section className="reports-controls" role="region" aria-label="Report controls">
-          <div className="controls-left">
-            <label className="label">Period</label>
-            <select aria-label="Select period" value={period} onChange={e=>setPeriod(e.target.value)}>
-              <option value="daily">Daily</option>
-              <option value="monthly">Monthly</option>
-              <option value="category">By Category</option>
-            </select>
-          </div>
-
           <div className="controls-middle">
             <button className="btn primary" onClick={fetchData} aria-label="Generate report" disabled={loading} aria-disabled={loading}>
               {loading ? <span className="spinner" aria-hidden="true" /> : '▶'}
