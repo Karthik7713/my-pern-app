@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { ThemeContext } from './themeContext.js';
 
 export function ThemeProvider({ children }) {
@@ -35,6 +35,18 @@ export function ThemeProvider({ children }) {
       input: '#2d2d2d',
     }
   };
+
+  useEffect(() => {
+    const background = colors[theme].bg;
+    const text = colors[theme].text;
+    document.documentElement.style.backgroundColor = background;
+    document.documentElement.style.colorScheme = theme;
+    document.body.style.backgroundColor = background;
+    document.body.style.color = text;
+
+    const root = document.getElementById('root');
+    if (root) root.style.backgroundColor = background;
+  }, [theme]);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, colors: colors[theme], isDark: theme === 'dark' }}>
