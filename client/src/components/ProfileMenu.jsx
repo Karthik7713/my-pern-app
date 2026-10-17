@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useTheme } from '../hooks/useTheme.jsx';
 
-export default function ProfileMenu({ icon: IconComponent, label = 'Profile' }){
+export default function ProfileMenu({ icon: IconComponent, label = 'Profile', showLabel = false, triggerColor }){
   const { logout } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -27,7 +27,7 @@ export default function ProfileMenu({ icon: IconComponent, label = 'Profile' }){
     <div className="profile-menu" ref={ref}>
       <button
         type="button"
-        className="profile-trigger"
+        className={`profile-trigger${showLabel ? ' profile-trigger--label' : ''}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={label}
@@ -36,7 +36,7 @@ export default function ProfileMenu({ icon: IconComponent, label = 'Profile' }){
           if (e.key === 'ArrowDown') { e.preventDefault(); const first = ref.current.querySelector('[role=menuitem]'); first && first.focus(); }
           if (e.key === 'Escape') { setOpen(false); }
         }}
-        style={{ background: isDark ? 'rgba(255,255,255,0.02)' : 'transparent', color: colors.text }}
+        style={{ background: isDark ? 'rgba(255,255,255,0.02)' : 'transparent', color: triggerColor || colors.text }}
       >
         {IconComponent ? (
           <IconComponent size={18} aria-hidden />
@@ -46,6 +46,7 @@ export default function ProfileMenu({ icon: IconComponent, label = 'Profile' }){
             <path d="M3 20c0-3.866 3.582-7 9-7s9 3.134 9 7v1H3v-1z" fill="currentColor" opacity="0.9"/>
           </svg>
         )}
+        {showLabel && <span className="profile-trigger-label">{label}</span>}
       </button>
 
       {open && (

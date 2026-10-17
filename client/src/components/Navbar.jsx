@@ -22,7 +22,7 @@ export default function Navbar(){
           </nav>
 
           <div className="nav-profile">
-            <ProfileMenu label="Profile" />
+            <ProfileMenu label="Profile" showLabel triggerColor="#fff" />
           </div>
         </div>
       </div>

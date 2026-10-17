@@ -47,6 +47,7 @@ body {
 }
 
 .navbar-inner {
+  width: 100%;
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 var(--page-padding);
@@ -72,14 +73,14 @@ body {
   margin-left: 8px;
   font-size: 0.92rem;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
 }
 /* ensure each link doesn't grow to push profile off-screen */
 .nav-links .nav-link, .nav-links a { flex: 0 0 auto; }
 .nav-links a { color: white; text-decoration: none; white-space: nowrap; }
 
 /* Profile area */
-.nav-profile { display: flex; align-items: center; justify-content: flex-end; margin-left: auto; }
+.nav-profile { display: flex; align-items: center; justify-content: flex-end; flex: 0 0 auto; margin-left: 0; }
 .profile-menu { position: relative; }
 .profile-trigger {
   background: rgba(255,255,255,0.02);
@@ -96,6 +97,8 @@ body {
   justify-content: center;
 }
 .profile-trigger svg { display: block; width: 18px; height: 18px; color: inherit; }
+.profile-trigger--label { width:auto; min-width:0; gap:6px; padding:6px 9px; color:#fff; }
+.profile-trigger-label { font-size:0.9rem; font-weight:600; line-height:1; white-space:nowrap; }
 
 /* If screen narrows drastically, make the profile button slightly smaller and reduce brand pill */
 @media (max-width: 360px) {
@@ -148,11 +151,28 @@ body {
   .profile-trigger { padding: 4px; }
 }
 
+@media (max-width: 600px) {
+  .navbar-inner { gap:6px; padding-left:8px; padding-right:8px; }
+  .nav-links { gap:3px; margin-left:2px; font-size:0.76rem; }
+  .nav-link, .brand { padding-left:4px; padding-right:4px; }
+  .nav-profile { margin-left:0; }
+  .profile-trigger--label { gap:4px; padding:5px 4px; }
+  .profile-trigger-label { font-size:0.76rem; }
+  .profile-trigger--label svg { width:15px; height:15px; }
+}
+
 @media (max-width: 420px) {
   .nav-links { gap: 6px; font-size: 0.8rem; }
   .brand { font-size: 0.88rem; }
   .profile-trigger svg { width: 16px; height: 16px; }
   .nav-link.active, .brand.active { padding: 5px 6px; }
+  .navbar-inner { gap:3px; padding-left:5px; padding-right:5px; }
+  .nav-links { gap:1px; margin-left:0; font-size:0.68rem; }
+  .nav-link, .brand { padding-left:3px; padding-right:3px; }
+  .nav-link.active, .brand.active { padding:4px 3px; }
+  .profile-trigger--label { gap:3px; padding:4px 3px; }
+  .profile-trigger-label { font-size:0.68rem; }
+  .profile-trigger--label svg { width:13px; height:13px; }
 }
 
 /* Tables and wrappers */
