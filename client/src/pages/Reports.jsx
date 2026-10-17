@@ -30,6 +30,7 @@ function buildReportQuery(bookId, dateRange = {}) {
 export default function Reports(){
   const { activeBookId } = useBooks();
   const [rows, setRows] = useState(null);
+  const [bookTotals, setBookTotals] = useState(null);
   const [dateFilterEnabled, setDateFilterEnabled] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -58,8 +59,17 @@ export default function Reports(){
     try {
       // fetch detailed rows (show all transactions matching filters)
       const query = buildReportQuery(activeBookId, dateRange);
-      const res = await api.get(`/reports/details${query ? `?${query}` : ''}`);
+      const totalsQuery = buildReportQuery(activeBookId);
+      const [res, totalsRes] = await Promise.all([
+        api.get(`/reports/details${query ? `?${query}` : ''}`),
+        api.get(`/dashboard/summary${totalsQuery ? `?${totalsQuery}` : ''}`)
+      ]);
       console.debug('reports details raw', res.data);
+      const totals = totalsRes.data?.data || {};
+      setBookTotals({
+        cashIn: sanitizeNumber(totals.total_cash_in),
+        cashOut: sanitizeNumber(totals.total_cash_out)
+      });
       const rowsIn = res.data?.rows || [];
       // derive cash_in / cash_out and ensure date_display/date_iso exist
       const sanitized = rowsIn.map(r => {
@@ -232,26 +242,49 @@ export default function Reports(){
             </div>
           )}
 
-          {rows && rows.length > 0 && (
-            <div className="kpi-cards">
-              <div className="kpi">
-                <div className="kpi-label">Total In</div>
-                <div className="kpi-value">{numberFormatIN(rows.reduce((s,r)=>s+ sanitizeNumber(r.cash_in),0))}</div>
+          {rows && (
+            <>
+              <h2 className="reports-kpi-heading">Selected range</h2>
+              <div className="kpi-cards">
+                <div className="kpi">
+                  <div className="kpi-label">Cash In</div>
+                  <div className="kpi-value">{numberFormatIN(rows.reduce((s,r)=>s+ sanitizeNumber(r.cash_in),0))}</div>
+                </div>
+                <div className="kpi">
+                  <div className="kpi-label">Cash Out</div>
+                  <div className="kpi-value">{numberFormatIN(rows.reduce((s,r)=>s+ sanitizeNumber(r.cash_out),0))}</div>
+                </div>
+                <div className="kpi">
+                  <div className="kpi-label">Net</div>
+                  <div className="kpi-value">{numberFormatIN(rows.reduce((s,r)=>s+ (sanitizeNumber(r.cash_in)-sanitizeNumber(r.cash_out)),0))}</div>
+                </div>
               </div>
-              <div className="kpi">
-                <div className="kpi-label">Total Out</div>
-                <div className="kpi-value">{numberFormatIN(rows.reduce((s,r)=>s+ sanitizeNumber(r.cash_out),0))}</div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-label">Net</div>
-                <div className="kpi-value">{numberFormatIN(rows.reduce((s,r)=>s+ (sanitizeNumber(r.cash_in)-sanitizeNumber(r.cash_out)),0))}</div>
-              </div>
-            </div>
+              {bookTotals && (
+                <>
+                  <h2 className="reports-kpi-heading">Entire book</h2>
+                  <div className="kpi-cards">
+                    <div className="kpi">
+                      <div className="kpi-label">Cash In</div>
+                      <div className="kpi-value">{numberFormatIN(bookTotals.cashIn)}</div>
+                    </div>
+                    <div className="kpi">
+                      <div className="kpi-label">Cash Out</div>
+                      <div className="kpi-value">{numberFormatIN(bookTotals.cashOut)}</div>
+                    </div>
+                    <div className="kpi">
+                      <div className="kpi-label">Net</div>
+                      <div className="kpi-value">{numberFormatIN(bookTotals.cashIn - bookTotals.cashOut)}</div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
           )}
         </div>
 
         {/* Results area: scrollable and below summary */}
         <div className="reports-results">
+          {rows && rows.length === 0 && !loading && <div className="reports-empty">No transactions match the selected filters.</div>}
           {rows && rows.length > 0 && (
             <>
               <div className="reports-table-wrapper" role="table" aria-label="Reports table">

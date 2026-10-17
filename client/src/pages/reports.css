@@ -27,6 +27,7 @@
 .btn.primary { background:#111827; color:white; border:1px solid rgba(0,0,0,0.08); }
 .btn.small { padding:6px 10px; }
 .reports-summary { margin-top:16px; z-index:30; position:relative; }
+.reports-kpi-heading { margin:12px 0 8px; color:#374151; font-size:15px; font-weight:600; }
 .kpi-cards { display:flex; gap:12px; margin-bottom:12px; }
 .kpi { padding:10px 12px; border-radius:8px; background: #fff; box-shadow:0 0 0 1px rgba(15,23,42,0.03); min-width:140px; }
 .kpi-label { color:#6b7280; font-size:12px; }
@@ -89,6 +90,11 @@
 @media (max-width:768px){
   .reports-controls { flex-direction:column; align-items:stretch; }
   .controls-left, .controls-middle, .controls-right { width:100%; justify-content:flex-start; }
+  .reports-date-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:end; gap:12px; }
+  .reports-date-toggle { grid-column:1 / -1; }
+  .reports-date-field { min-width:0; width:100%; }
+  .reports-date-field input { min-width:0; }
+  .controls-middle, .controls-right { justify-content:flex-start; }
   .controls-right { margin-left:0; display:flex; gap:8px; justify-content:flex-start; }
   .controls-right { display:flex; gap:8px; flex-wrap:wrap; }
   .btn { width: auto; }
